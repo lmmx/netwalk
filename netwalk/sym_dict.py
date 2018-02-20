@@ -98,7 +98,7 @@ class h_state(object):
         self.horizontal = out_2h_state(horizontal)
 
     def __repr__(self):
-        return 'horizontal' if self.horizontal else 'vertical'
+        return 'horizontal' if self.horizontal.horizontal else 'vertical'
 
 class on_state(object):
     """
