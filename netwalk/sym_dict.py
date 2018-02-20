@@ -15,37 +15,46 @@ class out_1_state(object):
         return self.direction
 
     @staticmethod
-    def out_to_direction(out: int):
-        DIR_DICT = dict(zip(range(0,4), ["up","right","down","left"]))
+    def out_to_direction(out: int) -> str:
+        dir_dict = dict(zip(range(0,4), ["up","right","down","left"]))
         if out < 0 or out > 3:
             raise ValueError(f"``out`` must be 0-3 (got {out}).")
         else:
-            return DIR_DICT[out]
+            return dir_dict[out]
 
     @staticmethod
-    def out_to_all_dirs(out: int):
-        # TODO
+    def out_to_all_dirs(out: int) -> list:
+        all_dirs = np.zeros(4, dtype=bool)
+        all_dirs[out] = True
+        return all_dirs
 
 class out_2h_state(object):
     """
     A class for the output direction of 2 planar connections, abstracting
     handling of the full 4 directions into an internal property.
     """
-    def __init__(self, out: bool):
-        self.out = out
-        self.direction = out_2h_state.out_to_direction(self.out)
-        self.all_dirs = out_2h_state.out_to_all_dirs(self.out)
+    def __init__(self, horizontal: bool):
+        self.horizontal = horizontal
+        self.direction = out_2h_state.out_to_direction(self.horizontal)
+        self.all_dirs = out_2h_state.out_to_all_dirs(self.horizontal)
 
     def __repr__(self):
         return self.direction
 
     @staticmethod
-    def out_to_direction(out: bool):
-        # TODO
+    def out_to_direction(out: bool) -> str:
+        if out:
+            return "left and right"
+        else:
+            return "up and down"
 
     @staticmethod
-    def out_to_all_dirs(out: bool):
-        # TODO
+    def out_to_all_dirs(out: bool) -> list:
+        # int(out) gives 1 if horizontal, 0 if vertical, so using
+        # a step size of 2 pulls out the horizontal/vertical axis
+        all_dirs = np.zeros(4, dtype=bool)
+        all_dirs[int(out):4:2] = True
+        return all_dirs
 
 class out_4_state(object):
     """
@@ -71,14 +80,16 @@ class out_4_state(object):
 
     @staticmethod
     def out_to_direction(out: np.ndarray) -> list:
-        DIR_DICT = dict(zip(range(0,4), ["up","right","down","left"]))
+        dir_dict = dict(zip(range(0,4), ["up","right","down","left"]))
         if out.dtype != np.dtype('bool'):
-            raise ValueError(f"``type(out) != np.ndarray`` (got {type(out)}.")
-        elif len(myvar) != 4:
+            raise TypeError(f"``out`` != ``np.ndarray`` (got {type(out)}.")
+        elif len(out) != 4:
             raise ValueError(f"``len(out) != 4`` (got length {len(out)}.")
         else:
-            return [DIR_DICT[i] for i, x in enumerate(out) if x]
+            return [dir_dict[i] for i, x in enumerate(out) if x]
 
+# this feels like overkill but it's done and gives a different repr to out_2h
+# so, use it as a wrapper for 2h_state to give horizontal/vertical repr
 class h_state(object):
     """
     A class for the orientation of a single linear wire [class: ``l_wire``].
@@ -109,11 +120,13 @@ class terminal(object):
     """
     def __init__(self, out: int, on: bool):
         self.out = out_1_state(out)
+        self.directions = self.out.all_dirs
         self.state = on_state(on)
 
     def __repr__(self):
         return f'A terminal pointing {self.out!r}, {self.state!r}.'
 
+# the h_state and out_2h_state feels bad... bleh TODO: refactor, maybe
 class l_wire(object):
     """
     A line wire with 2 outputs at opposite sides of the tile.
@@ -122,7 +135,7 @@ class l_wire(object):
     """
     def __init__(self, horizontal: bool):
         self.horizontal = h_state(horizontal)
-        self.directions = out_2_state.all_dirs(self.horizontal)
+        self.directions = self.horizontal.horizontal.all_dirs
 
     def __repr__(self):
         return f'A line wire pointing {self.horizontal!r}ly.'
@@ -133,12 +146,14 @@ class c_wire(object):
     
     - ``corner`` indicates the corner enclosed by the output connections
       - it counts 0 to 3 clockwise from top-left
-    - ``out`` indicates the output directions [explicitly]
-      - it stores a clockwise Boolean 4-tuple, top = 0th
     """
     def __init__(self, corner: int):
-        self.corner = corner
-        self.out = c_wire.parse_corner(self.corner)
+        self.corner = c_wire.parse_corner(corner)
+        self.out = out_4_state(self.corner)
+        self.directions = self.out.direction
+
+    def __repr__(self):
+        return f'A corner wire pointing {self.out!r}.'
 
     @staticmethod
     def parse_corner(corner: int):
@@ -166,8 +181,12 @@ class t_wire(object):
       - it stores a clockwise Boolean 4-tuple, top = 0th
     """
     def __init__(self, facing: int):
-        self.facing = facing
-        self.out = t_wire.parse_facing(self.facing)
+        self.facing = t_wire.parse_facing(facing)
+        self.out = out_4_state(self.facing)
+        self.directions = self.out.direction
+
+    def __repr__(self):
+        return f'A T-shaped wire pointing {self.out!r}.'
 
     @staticmethod
     def parse_facing(facing: int):
