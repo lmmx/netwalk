@@ -1,6 +1,10 @@
 # Define a symbol dictionary
 import numpy as np
 
+##########################################################################
+#####                       State classes                            #####
+##########################################################################
+
 class out_1_state(object):
     """
     A class for the output direction of a single connection, abstracting
@@ -110,6 +114,14 @@ class on_state(object):
     def __repr__(self):
         return 'on' if self.on else 'off'
 
+##########################################################################
+#####                      Component classes                         #####
+##########################################################################
+
+class server(object):
+    def __init__(self):
+        # TODO
+        return
 
 class terminal(object):
     """
@@ -124,7 +136,7 @@ class terminal(object):
         self.state = on_state(on)
 
     def __repr__(self):
-        return f'A terminal pointing {self.out!r}, {self.state!r}.'
+        return f'A terminal pointing {self.out!r}, switched {self.state!r}.'
 
 # the h_state and out_2h_state feels bad... bleh TODO: refactor, maybe
 class l_wire(object):
@@ -199,8 +211,3 @@ class t_wire(object):
         out = np.ones(4, dtype=bool)
         out[excl] = False
         return out
-
-class server(object):
-    def __init__(self):
-        # TODO
-        return
