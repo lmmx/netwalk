@@ -7,14 +7,12 @@ class tileset(object):
     A class connecting the parsed image file to the internal grid layout
     and component representation.
     """
-    def __init__(self, img: Image, tile_segments: np.ndarray):
-        self.segments = segment(tile_segments)
-        # self.tiles = seg_to_tiles(img, self.segments)
-        # TODO: instantiate ``tile`` objects from these segmented arrays
-        #       using the ``img`` parameter's provided RGB information
+    def __init__(self, img: Image, tile_mask: np.ndarray):
+        self.segments = segment(tile_mask)
+        self.tiles = tile_segments(img, self.segments)
 
     def __repr__(self):
-        return f"A set of puzzle tiles"
+        return f"A set of {len(self.segments[0])}x{len(self.segments)} tiles."
 
 def segment(tiling_grid: np.ndarray):
     """
@@ -60,12 +58,31 @@ def segment(tiling_grid: np.ndarray):
                      (x[1], seg_row['end_y'])  ] for x in seg_row['x_ranges']]
         seg_set.append(seg_list)
     return seg_set
-    # TODO: turn seg_set into tile_set by instantiating tile classes per seg.
-    # return tile_set
+
+def tile_segments(img: Image, segments: list):
+    tile_set = []
+    for i, seg_row in enumerate(segments):
+        tile_row = []
+        for j, seg in enumerate(seg_row):
+            (xs, ys), (xe, ye) = seg
+            t = tile(img[ys:ye+1, seg, xs:xe+1], seg, i, j)
+            tile_row.append(t)
+        tile_set.append(tile_row)
+    return tile_set
 
 class tile(object):
     """
-    ...
+    A class for the image content and coordinate data of a single tile.
     """
-    def __init__(self, image_segment: np.ndarray):
-        self.corners = None
+    def __init__(self, image_segment: np.ndarray, xys_xye: list,
+                 tile_row: int, tile_n: int):
+        self.image = image_segment
+        assert len(xys_xye) == len(xys_xye[0]) == len(xys_xye[1]) == 2
+        assert np.all([[type(i) == int for i in j] for j in xys_xye])
+        self.xy_coords = xys_xye
+        self.row = tile_row
+        self.col = tile_n
+
+    def __repr__(self):
+        return f"Tile: {self.xy_coords[0]}, {self.xy_coords[1]} " \
+             + f"(row {self.row}, column {self.col})."
