@@ -65,7 +65,7 @@ def tile_segments(img: Image, segments: list):
         tile_row = []
         for j, seg in enumerate(seg_row):
             (xs, ys), (xe, ye) = seg
-            t = tile(img[ys:ye+1, seg, xs:xe+1], seg, i, j)
+            t = tile(img[ys:ye+1, xs:xe+1], seg, i, j)
             tile_row.append(t)
         tile_set.append(tile_row)
     return tile_set
