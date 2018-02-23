@@ -119,9 +119,10 @@ class on_state(object):
 ##########################################################################
 
 class server(object):
-    def __init__(self):
-        # TODO
-        return
+    def __init__(self, out: int):
+        self.out = out_1_state(out)
+        self.directions = self.out.all_dirs
+        self.state = on_state(True)
 
 class terminal(object):
     """
@@ -145,9 +146,10 @@ class l_wire(object):
     
     - ``horizontal`` indicates whether output connections are horizontal.
     """
-    def __init__(self, horizontal: bool):
+    def __init__(self, horizontal: bool, on: bool):
         self.horizontal = h_state(horizontal)
         self.directions = self.horizontal.horizontal.all_dirs
+        self.state = on_state(on)
 
     def __repr__(self):
         return f'A line wire pointing {self.horizontal!r}ly.'
@@ -159,10 +161,11 @@ class c_wire(object):
     - ``corner`` indicates the corner enclosed by the output connections
       - it counts 0 to 3 clockwise from top-left
     """
-    def __init__(self, corner: int):
+    def __init__(self, corner: int, on: bool):
         self.corner = c_wire.parse_corner(corner)
         self.out = out_4_state(self.corner)
         self.directions = self.out.direction
+        self.state = on_state(on)
 
     def __repr__(self):
         return f'A corner wire pointing {self.out!r}.'
@@ -192,10 +195,11 @@ class t_wire(object):
     - ``out`` indicates the output directions [explicitly]
       - it stores a clockwise Boolean 4-tuple, top = 0th
     """
-    def __init__(self, facing: int):
+    def __init__(self, facing: int, on: bool):
         self.facing = t_wire.parse_facing(facing)
         self.out = out_4_state(self.facing)
         self.directions = self.out.direction
+        self.state = on_state(on)
 
     def __repr__(self):
         return f'A T-shaped wire pointing {self.out!r}.'
