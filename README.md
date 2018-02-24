@@ -5,7 +5,7 @@ Solver for netwalk, reading in image files of game state [under development]
 Example game states:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_expert.png)
 
 - terminology for components etc. as in [De Biasi 2012][debiasi12]\*
 
