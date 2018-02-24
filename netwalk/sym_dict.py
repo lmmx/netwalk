@@ -119,10 +119,17 @@ class on_state(object):
 ##########################################################################
 
 class server(object):
-    def __init__(self, out: int):
-        self.out = out_1_state(out)
-        self.directions = self.out.all_dirs
+    def __init__(self, out):
+        if type(out) == int:
+            self.out = out_1_state(out)
+            self.directions = self.out.all_dirs
+        else:
+            self.out = out_4_state(out)
+            self.directions = self.out.direction
         self.state = on_state(True)
+
+    def __repr__(self):
+        return f'A server (always on), with ports pointing {self.out!r}.'
 
 class terminal(object):
     """
@@ -152,7 +159,7 @@ class l_wire(object):
         self.state = on_state(on)
 
     def __repr__(self):
-        return f'A line wire pointing {self.horizontal!r}ly.'
+        return f'A line wire pointing {self.horizontal!r}ly ({self.state}).'
 
 class c_wire(object):
     """
@@ -168,7 +175,7 @@ class c_wire(object):
         self.state = on_state(on)
 
     def __repr__(self):
-        return f'A corner wire pointing {self.out!r}.'
+        return f'A corner wire pointing {self.out!r} ({self.state!r}).'
 
     @staticmethod
     def parse_corner(corner: int):
@@ -202,7 +209,7 @@ class t_wire(object):
         self.state = on_state(on)
 
     def __repr__(self):
-        return f'A T-shaped wire pointing {self.out!r}.'
+        return f'A T wire pointing {self.out!r} ({self.on!r}.'
 
     @staticmethod
     def parse_facing(facing: int):

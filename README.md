@@ -17,8 +17,6 @@ Example game states:
 
 - N.B. the power unit shown in the figure here [from a paper] has two outputs, whereas the one coded for in this library has from one to three, in line with the game [at this link](http://www.logicgamesonline.com/netwalk)
 
-- In the component classes I call the connectors 'wires' but elsewhere I call them 'pipes' since they're kind of chunky and the colour change looks like something flowing through - it doesn't really matter
-
 ## TODO
 
 - [x] write tests for all components
