@@ -2,8 +2,9 @@
 
 Solver for netwalk, reading in image files of game state [under development]
 
-Example game state:
+Example game states:
 
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
 
 - terminology for components etc. as in [De Biasi 2012][debiasi12]\*
@@ -14,9 +15,9 @@ Example game state:
 
 \* A couple of exceptions:
 
-- N.B. the power unit shown in the figure here [from a paper] has two outputs, whereas the one coded for in this library has only one, in line with the game [at this link](http://www.logicgamesonline.com/netwalk)
+- N.B. the power unit shown in the figure here [from a paper] has two outputs, whereas the one coded for in this library has from one to three, in line with the game [at this link](http://www.logicgamesonline.com/netwalk)
 
-- In the component classes I call the connectors 'wires' but elsewhere I call them 'pipes' - it doesn't really matter
+- In the component classes I call the connectors 'wires' but elsewhere I call them 'pipes' since they're kind of chunky and the colour change looks like something flowing through - it doesn't really matter
 
 ## TODO
 
