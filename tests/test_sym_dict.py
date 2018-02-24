@@ -14,8 +14,8 @@ class OutStateTestSuite(unittest.TestCase):
         """
         Test the ``out_to_direction`` static method of ``out_1_state``
         """
-        self.assertEqual([out_1_state.out_to_direction(x) for x in range(0,4)],
-                         ['up', 'right', 'down', 'left'])
+        self.assertEqual([out_1_state.out_to_direction(x) \
+            for x in np.arange(4)], ['up', 'right', 'down', 'left'])
         with self.assertRaises(ValueError):
             out_1_state.out_to_direction(5)
         with self.assertRaises(ValueError):

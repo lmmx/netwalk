@@ -17,11 +17,23 @@ Example game states:
 
 - N.B. the power unit shown in the figure here [from a paper] has two outputs, whereas the one coded for in this library has from one to three, in line with the game [at this link](http://www.logicgamesonline.com/netwalk)
 
+## Usage
+
+## Interactive
+
+- `python -im netwalk`
+- `from .imaging import give_me_the_tiles` (or `show_me_the_tiles` to open a viewer)
+
+## Command line
+
+- `python -c "from netwalk import imaging; imaging.show_me_the_tiles()"`
+- (There's no solving functionality yet but will add a proper CLI interface when there is)
+
 ## TODO
 
 - [x] write tests for all components
-  - [ ] give all wire components `on` states
-    - [ ] fix all the tests this breaks
+  - [x] give all wire components `on` states
+    - [ ] check this hasn't broken any tests
 - [x] read in image file and parse tiling/component state
 - [ ] write tests for imaging and tiling
 - [ ] use relative data path rather than hardcoded

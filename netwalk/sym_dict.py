@@ -20,7 +20,7 @@ class out_1_state(object):
 
     @staticmethod
     def out_to_direction(out: int) -> str:
-        dir_dict = dict(zip(range(0,4), ["up","right","down","left"]))
+        dir_dict = dict(zip(np.arange(4), ["up","right","down","left"]))
         if out < 0 or out > 3:
             raise ValueError(f"``out`` must be 0-3 (got {out}).")
         else:
@@ -84,7 +84,7 @@ class out_4_state(object):
 
     @staticmethod
     def out_to_direction(out: np.ndarray) -> list:
-        dir_dict = dict(zip(range(0,4), ["up","right","down","left"]))
+        dir_dict = dict(zip(np.arange(4), ["up","right","down","left"]))
         if out.dtype != np.dtype('bool'):
             raise TypeError(f"``out`` != ``np.ndarray`` (got {type(out)}.")
         elif len(out) != 4:
@@ -120,7 +120,7 @@ class on_state(object):
 
 class server(object):
     def __init__(self, out):
-        if type(out) == int:
+        if type(out) == np.typeDict['int']:
             self.out = out_1_state(out)
             self.directions = self.out.all_dirs
         else:
@@ -146,7 +146,6 @@ class terminal(object):
     def __repr__(self):
         return f'A terminal pointing {self.out!r}, switched {self.state!r}.'
 
-# the h_state and out_2h_state feels bad... bleh TODO: refactor, maybe
 class l_wire(object):
     """
     A line wire with 2 outputs at opposite sides of the tile.
