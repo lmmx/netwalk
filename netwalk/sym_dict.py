@@ -12,8 +12,8 @@ class out_1_state(object):
     """
     def __init__(self, out:int):
         self.out = out
-        self.direction = out_1_state.out_to_direction(self.out)
-        self.all_dirs = out_1_state.out_to_all_dirs(self.out)
+        self.direction = self.out_to_direction(self.out)
+        self.all_dirs = self.out_to_all_dirs(self.out)
 
     def __repr__(self):
         return self.direction
@@ -39,8 +39,8 @@ class out_2h_state(object):
     """
     def __init__(self, horizontal: bool):
         self.horizontal = horizontal
-        self.direction = out_2h_state.out_to_direction(self.horizontal)
-        self.all_dirs = out_2h_state.out_to_all_dirs(self.horizontal)
+        self.direction = self.out_to_direction(self.horizontal)
+        self.all_dirs = self.out_to_all_dirs(self.horizontal)
 
     def __repr__(self):
         return self.direction
@@ -66,10 +66,10 @@ class out_4_state(object):
     """
     def __init__(self, out: np.ndarray):
         self.out = out
-        self.direction = out_4_state.out_to_direction(self.out)
+        self.direction = self.out_to_direction(self.out)
 
     def __repr__(self):
-        return out_4_state.dirs_to_str(self.direction)
+        return self.dirs_to_str(self.direction)
 
     @staticmethod
     def dirs_to_str(dir_vec: list) -> str:

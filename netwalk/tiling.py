@@ -4,21 +4,44 @@ from imageio.core.util import Image
 from itertools import chain
 from .colour_dict import game_colours
 from .sym_dict import server, terminal, l_wire, c_wire, t_wire
-from .util import ptime
-from scipy.ndimage import label
-from .util import get_orientation_quadrants
+from .util import get_orientation_quadrants, ptime
+from .solve_tileset import tileset_solver
 
 class tileset(object):
     """
     A class connecting the parsed image file to the internal grid layout
-    and component representation.
+    and component representation, and which initiates a solver.
     """
     def __init__(self, img: Image, tile_mask: np.ndarray):
         print(f"{ptime()} Initialising tileset...")
         global oriented
         oriented = False
         self.segments = segment(tile_mask)
-        self.tiles = tile_segments(img, self.segments)
+        self.source_image = img
+        self.tiles = tile_segments(self.source_image, self.segments)
+        self.solved = False
+        self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
+        self.solver = None
+        self.solve() # perform initial solve
+
+    def solve(self):
+        """
+        Instantiate a solver on the tileset [which will then run].
+        """
+        assert not self.solved
+        if self.solver is None:
+            self.solver = tileset_solver(self)
+        else:
+            self.solver.resolve()
+
+    def get_solved_tiles(self) -> np.ndarray:
+        """
+        Determine which tiles [if any] have been solved and return
+        a boolean numpy array accordingly.
+        """
+        s = np.array([[t.solved for t in r] for r in self.tiles])
+        self.solved_tiles = s
+        return self.solved_tiles
 
     def __repr__(self):
         return f"A set of {len(self.segments[0])}x{len(self.segments)} tiles."
@@ -33,7 +56,7 @@ def segment(tiling_grid: np.ndarray) -> list:
     The top line of a segment set toggles ``in_seg`` to True, and each
     tile so identified is instantiated as a ``tile_segment``.
     """
-    #print(f"{ptime()} Segmenting tiling grid...")
+    # TODO: is it simpler/faster to replace this with ``sp.ndimage.label``?
     in_seg = False
     seg_store = []
     for n, line in enumerate(tiling_grid):
@@ -233,6 +256,20 @@ class tile(object):
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
+        self.solved = None
+        self.fixed = np.zeros(4, dtype=bool)
+        self.avoid = []
+        if self.component is None:
+            self.solve()
+
+    def solve(self):
+        """
+        Declare a tile 'solved', and 'freeze' it on all sides.
+        """
+        self.solved = True
+        self.fixed.fill(True)
+        # maybe add an assert here for ``self.avoid`` in future
+        return
 
     def __repr__(self):
         return f"Tile: {self.xy_coords[0]}, {self.xy_coords[1]} " \

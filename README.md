@@ -34,6 +34,12 @@ Example game states:
 - [x] write tests for all components
   - [x] give all wire components `on` states
     - [ ] check this hasn't broken any tests
-- [x] read in image file and parse tiling/component state
-- [ ] write tests for imaging and tiling
 - [ ] use relative data path rather than hardcoded
+- [x] read in image file and parse tiling/component state
+- [x] detect output directions of component wiring and add to component state
+- [ ] write tests for imaging and tiling
+- [x] add to the tile initialisation:
+  - [x] a 'solved' property per tile
+  - [x] a 'fixed' vector per component output direction
+  - [x] an 'avoid' vector per tile [maximum length = 4 - number of output directions]
+- [ ] add methods that modify these attributes per tile over the tileset
