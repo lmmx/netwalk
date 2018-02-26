@@ -18,7 +18,7 @@ class tileset(object):
         oriented = False
         self.segments = segment(tile_mask)
         self.source_image = img
-        self.tiles = tile_segments(self.source_image, self.segments)
+        self.tiles = tile_segments(self)
         self.solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
@@ -92,11 +92,13 @@ def segment(tiling_grid: np.ndarray) -> list:
         seg_set.append(seg_list)
     return seg_set
 
-def tile_segments(img: Image, segments: list) -> list:
+def tile_segments(tset: tileset) -> list:
     """
     Turn the list of segments returned from ``segment`` into a list of
     rows of ``tile`` objects.
     """
+    img, segments = tset.source_image, tset.segments
+    assert type(img) == Image and type(segments) == list
     tile_set = []
     for i, seg_row in enumerate(segments):
         print(f"{ptime()} Scanning row {i}")
@@ -104,7 +106,7 @@ def tile_segments(img: Image, segments: list) -> list:
         for j, seg in enumerate(seg_row):
             print(f"{ptime()} Scanning row {i} tile {j}")
             (xs, ys), (xe, ye) = seg
-            t = tile(img[ys:ye+1, xs:xe+1], seg, i, j)
+            t = tile(tset, img[ys:ye+1, xs:xe+1], seg, i, j)
             tile_row.append(t)
         tile_set.append(tile_row)
     return tile_set
@@ -246,21 +248,25 @@ class tile(object):
     """
     A class for the image content and coordinate data of a single tile.
     """
-    def __init__(self, image_segment: np.ndarray, xys_xye: list,
-                 tile_row: int, tile_n: int):
+    def __init__(self, tset: tileset, image_segment: np.ndarray,
+                 xys_xye: list, tile_row: int, tile_n: int):
+        self.__parent__ = tset
         self.image = image_segment
         self.palette = scan_tile(self.image)
         self.component = read_palette(self.palette, self.image)
+        self.solved = None
+        if self.component is None:
+            self.solve()
+        else:
+            self.solved = False
         assert len(xys_xye) == len(xys_xye[0]) == len(xys_xye[1]) == 2
         assert np.all([[type(i) == int for i in j] for j in xys_xye])
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
-        self.solved = None
         self.fixed = np.zeros(4, dtype=bool)
         self.avoid = []
-        if self.component is None:
-            self.solve()
+        self.adjacent_tiles = get_adjacent_tiles()
 
     def solve(self):
         """
@@ -270,6 +276,28 @@ class tile(object):
         self.fixed.fill(True)
         # maybe add an assert here for ``self.avoid`` in future
         return
+
+    def get_adjacent_tiles(self, A=np.arange(4)):
+        """
+        Default is to get adjacent tiles in all directions. If fewer
+        directions are specified, other values returned in the list
+        ``adj`` will have ``None`` rather than a ``tile`` object in
+        a tuple with the direction integer (i.e. ``(a, t_a)``.
+        """
+        adj = dict(zip(np.arange(4), [None]*4))
+        # TODO: use n to get the tile from __parent__
+        for a in A:
+            t_a = get_adjacent_tile(self, a)
+            adj[a] = t_a
+        return adj
+
+    def get_adjacent_tile(self, t: tile, a: int, n: int = 1):
+        """
+        Get the ``n``th adjacent tile in the ``a`` direction,
+        where ``a`` is a 0-based clockwise integer from top.
+        """
+        # TODO: yawn it's late
+        return t_a
 
     def __repr__(self):
         return f"Tile: {self.xy_coords[0]}, {self.xy_coords[1]} " \

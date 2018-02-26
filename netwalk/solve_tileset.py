@@ -30,7 +30,6 @@ class tileset_solver(object):
         # - then need to call ``self.get_solved_tiles`` to update
         #   ``self.__parent__.solved_tiles``
         for row_pos, col_pos in tile_pos:
-            # TODO: get the appropriate tile to set to solved=True
             self.__parent__.tiles[row_pos][col_pos].solve()
         # don't need to receive the result, just ensure it completes:
         assert type(self.get_solved_tiles()) == np.ndarray
@@ -42,3 +41,12 @@ class tileset_solver(object):
         """
         # TODO
         return
+
+    def __repr__(self):
+        if self.solved:
+            m = 'unsolved'
+            n = np.count_nonzero(self.get_solved_tiles())
+        else:
+            m = 'solved'
+            n = 'all'
+        return f"The puzzle is {m} ({n} of {n.size} tiles) solved"
