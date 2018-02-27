@@ -43,3 +43,5 @@ Example game states:
   - [x] a 'fixed' vector per component output direction
   - [x] an 'avoid' vector per tile [maximum length = 4 - number of output directions]
 - [ ] add methods that modify these attributes per tile over the tileset
+- [x] implement an interface list with methods to access both tiles across an interface
+- [ ] add a series of solvers for a tile which can be run in succession as applicable

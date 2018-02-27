@@ -6,6 +6,7 @@ from .colour_dict import game_colours
 from .sym_dict import server, terminal, l_wire, c_wire, t_wire
 from .util import get_orientation_quadrants, ptime
 from .solve_tileset import tileset_solver
+from .adjacency import tiling_adjacencies
 
 class tileset(object):
     """
@@ -23,6 +24,7 @@ class tileset(object):
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
         self.solve() # perform initial solve
+        self.adjacencies = tiling_adjacencies(self)
 
     def solve(self):
         """
@@ -266,7 +268,7 @@ class tile(object):
         self.col = tile_n
         self.fixed = np.zeros(4, dtype=bool)
         self.avoid = []
-        self.adjacent_tiles = get_adjacent_tiles()
+        self.adjacent_tiles = self.get_adjacent_tiles()
 
     def solve(self):
         """
@@ -287,16 +289,22 @@ class tile(object):
         adj = dict(zip(np.arange(4), [None]*4))
         # TODO: use n to get the tile from __parent__
         for a in A:
-            t_a = get_adjacent_tile(self, a)
+            t_a = self.get_adjacent_tile(a)
             adj[a] = t_a
         return adj
 
-    def get_adjacent_tile(self, t: tile, a: int, n: int = 1):
+    def get_adjacent_tile(self, a: int, n: int = 1):
         """
         Get the ``n``th adjacent tile in the ``a`` direction,
         where ``a`` is a 0-based clockwise integer from top.
         """
-        # TODO: yawn it's late
+        assert n > 0
+        adjacencies = self.__parent__.adjacencies
+        if n > 1:
+            while n:
+                t_a = adjacencies[a][n]
+                n -= 1
+            t_a = adjacencies[a][n]
         return t_a
 
     def __repr__(self):

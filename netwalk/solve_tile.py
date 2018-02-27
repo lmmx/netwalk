@@ -8,4 +8,4 @@ def tile_solvers(t: tile):
     """
     if type(t.component) == terminal:
         for a, t_a in enumerate(t.adjacent_tiles):
-            # TODO: yawn it's late
+            # TODO: (once get_adjacent_tiles implemented)
