@@ -1,12 +1,12 @@
 # determining adjacent tiles efficiently
-from .tiling import tileset
+import numpy as np
 
 class tiling_adjacencies(object):
     """
     The set (with repeats) of all adjacencies of a tileset. An adjacency
     is an interface
     """
-    def __init__(self, tset: tileset):
+    def __init__(self, tset):
         self.__parent__ = tset
         self.interfaces = interface_set(self)
         self.adjacencies = generate_adjacencies(self)
@@ -53,7 +53,7 @@ class interface(object):
     indicates the left/upper tile (depending on whether the interface in
     question is horizontal/vertical) and ``after`` indicates its complement.
     """
-    def __init__(self, i: np.typeDict['int'], tset: tileset):
+    def __init__(self, i: np.typeDict['int'], tset):
         self.__tileset__ = tset
         self.index = i
         self.horizontal = self.is_horizontal()
@@ -64,7 +64,7 @@ class interface(object):
 
     def is_horizontal(self):
         n = len(self.__tileset__.tiles)
-        return is_h = self.index % (2*n) < n
+        return self.index % (2*n) < n
 
     def map_pre_post(self):
         """
@@ -79,7 +79,8 @@ class interface(object):
     def pre(self):
         return self._pre
 
-    @pre.setter(self, val):
+    @pre.setter
+    def pre(self, val):
         self._pre = val
         return
 
@@ -87,7 +88,8 @@ class interface(object):
     def post(self):
         return self._post
 
-    @post.setter(self, val):
+    @post.setter
+    def post(self, val):
         self._post = val
         return
 
@@ -111,7 +113,7 @@ class interface(object):
             self.post = self.get_adjacent_tile(self.__tileset__, 1)
         return
 
-    def get_adjacent_tile(self, tset: tileset, a: int):
+    def get_adjacent_tile(self, tset, a: int):
         """
         Handle the retrieval of tiles from the parent tileset, including
         edge wrapping logic using the index of the interface. Note that
@@ -183,11 +185,11 @@ class interface_set(object):
         return
 
     def generate_interfaces(self):
-        assert len(self.interfaces == 0) # only used upon initialisation
+        assert len(self.interfaces) == 0 # only used upon initialisation
         self.interfaces = generate_tile_interfaces(self.__tileset__)
         return
 
-def generate_tile_interfaces(tset: tileset) -> list:
+def generate_tile_interfaces(tset) -> list:
     """
     Using the ``tiles`` [attribute] from a ``tileset``, i.e. a list of
     rows of ``tile`` instances, produce the full set of interfaces.

@@ -19,12 +19,13 @@ class tileset(object):
         oriented = False
         self.segments = segment(tile_mask)
         self.source_image = img
+        # TODO: race condition between adjacencies and tiles here!
+        self.adjacencies = tiling_adjacencies(self)
         self.tiles = tile_segments(self)
         self.solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
         self.solve() # perform initial solve
-        self.adjacencies = tiling_adjacencies(self)
 
     def solve(self):
         """
@@ -254,6 +255,8 @@ class tile(object):
                  xys_xye: list, tile_row: int, tile_n: int):
         self.__parent__ = tset
         self.image = image_segment
+        self.fixed = np.zeros(4, dtype=bool)
+        self.avoid = []
         self.palette = scan_tile(self.image)
         self.component = read_palette(self.palette, self.image)
         self.solved = None
@@ -266,8 +269,6 @@ class tile(object):
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
-        self.fixed = np.zeros(4, dtype=bool)
-        self.avoid = []
         self.adjacent_tiles = self.get_adjacent_tiles()
 
     def solve(self):
