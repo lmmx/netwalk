@@ -9,7 +9,7 @@ class tiling_adjacencies(object):
     def __init__(self, tset):
         self.__parent__ = tset
         self.interfaces = interface_set(self)
-        self.adjacencies = generate_adjacencies(self)
+        self.adjacencies = self.generate_adjacencies()
         return
 
     def generate_adjacencies(self):
@@ -17,7 +17,13 @@ class tiling_adjacencies(object):
         The set of all ``adjacency`` objects, i.e. the set with one
         ``adjacency`` per tile for all tiles in a ``tileset``.
         """
-        return
+        # TODO
+        print("Not generating adjacencies (TODO)")
+        return None
+
+    def __repr__(self):
+        # TODO
+        return "(Adjacencies)"
 
 class adjacency(object):
     """
@@ -36,6 +42,10 @@ class adjacency(object):
         adj = adjacence(n) # TODO: need to pass in... tile?
         return adj
 
+    def __repr__(self):
+        # TODO
+        return "(Adjacency)"
+
 class adjacence(object):
     """
     A single directional adjacence, containing [a reference to] a single
@@ -44,6 +54,10 @@ class adjacence(object):
     def __init__(self, n: np.typeDict['int']):
         # TODO: self.interface = ?
         return
+
+    def __repr__(self):
+        # TODO
+        return "(Adjacence)"
 
 class interface(object):
     """
@@ -61,6 +75,10 @@ class interface(object):
         self._post = None
         self.map_pre_post()
         return
+
+    def __repr__(self):
+        # TODO
+        return "(Interface)"
 
     def is_horizontal(self):
         n = len(self.__tileset__.tiles)
@@ -128,12 +146,12 @@ class interface(object):
             return tset.tiles[-1][i]
         elif a == 1 and i % n == (n-1):
             # tile is on the right edge of tileset, so edge wraps
-            return tset.tiles[int((i + 1) / n)][0]
+            return tset.tiles[int((i + 1) / (2*n))-1][0]
         # N.B. a=2 on the bottom edge does not need to be handled,
         # as interfaces on the bottom row are vertical only
         elif a == 3 and i % n == 0:
             # tile is on the left edge of tileset, so edge wraps
-            return tset.tiles[int(i / n)][-1]
+            return tset.tiles[int(((i / n)-1) / 2)][-1]
         else:
             # the adjacent tile does not cross tileset outer edge
             if self.horizontal:
@@ -175,6 +193,10 @@ class interface_set(object):
         self.generate_interfaces()
         return
 
+    def __repr__(self):
+        # TODO
+        return "(Interface set)"
+
     @property
     def interfaces(self):
         return self._interfaces
@@ -196,5 +218,5 @@ def generate_tile_interfaces(tset) -> list:
     """
     n = len(tset.tiles)
     interface_index = np.array(np.arange(n*2*n)).reshape(2*n,n)
-    interfaces = [interface(i, tset) for i in interface_index]
+    interfaces = [interface(i, tset) for i in interface_index.flat]
     return interfaces

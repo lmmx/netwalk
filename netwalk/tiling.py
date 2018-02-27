@@ -20,8 +20,8 @@ class tileset(object):
         self.segments = segment(tile_mask)
         self.source_image = img
         # TODO: race condition between adjacencies and tiles here!
-        self.adjacencies = tiling_adjacencies(self)
         self.tiles = tile_segments(self)
+        self.adjacencies = tiling_adjacencies(self)
         self.solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
@@ -112,6 +112,7 @@ def tile_segments(tset: tileset) -> list:
             t = tile(tset, img[ys:ye+1, xs:xe+1], seg, i, j)
             tile_row.append(t)
         tile_set.append(tile_row)
+        print(f"{ptime()} All tiles scanned")
     return tile_set
 
 def detect_colour(colour: list, img: Image) -> bool:
@@ -269,7 +270,7 @@ class tile(object):
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
-        self.adjacent_tiles = self.get_adjacent_tiles()
+        # self.adjacent_tiles = self.get_adjacent_tiles()
 
     def solve(self):
         """
@@ -309,5 +310,4 @@ class tile(object):
         return t_a
 
     def __repr__(self):
-        return f"Tile: {self.xy_coords[0]}, {self.xy_coords[1]} " \
-             + f"(row {self.row}, column {self.col})."
+        return f"{self.row}:{self.col}"
