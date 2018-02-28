@@ -19,7 +19,6 @@ class tileset(object):
         oriented = False
         self.segments = segment(tile_mask)
         self.source_image = img
-        # TODO: race condition between adjacencies and tiles here!
         self.tiles = tile_segments(self)
         self.adjacencies = tiling_adjacencies(self)
         self.solved = False
@@ -270,7 +269,7 @@ class tile(object):
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
-        # self.adjacent_tiles = self.get_adjacent_tiles()
+        self.adjacent_tiles = self.get_adjacent_tiles()
 
     def solve(self):
         """
@@ -300,13 +299,15 @@ class tile(object):
         Get the ``n``th adjacent tile in the ``a`` direction,
         where ``a`` is a 0-based clockwise integer from top.
         """
-        assert n > 0
+        #assert n > 0
+        assert n == 1 # not ready to do multi-step yet
         adjacencies = self.__parent__.adjacencies
-        if n > 1:
-            while n:
-                t_a = adjacencies[a][n]
-                n -= 1
-            t_a = adjacencies[a][n]
+        #if n > 1:
+        #    while n:
+        #        t_a = adjacencies[a][n]
+        #        n -= 1
+        #    t_a = adjacencies[a][n]
+        t_a = adjacencies[a]
         return t_a
 
     def __repr__(self):
