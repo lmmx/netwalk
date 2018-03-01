@@ -20,7 +20,9 @@ class tileset(object):
         self.segments = segment(tile_mask)
         self.source_image = img
         self.tiles = tile_segments(self)
+        self.shape = (len(self.tiles), len(self.tiles[0]))
         self.adjacencies = tiling_adjacencies(self)
+        self.initialise_tile_adjacencies()
         self.solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
@@ -45,8 +47,21 @@ class tileset(object):
         self.solved_tiles = s
         return self.solved_tiles
 
+    def initialise_tile_adjacencies(self):
+        """
+        Once the ``tiling_adjacencies`` class has a populated ``adjacencies``
+        attribute, the ``tileset`` init method calls this function to trigger
+        the tile-level updating of all tiles' ``initialise_adjacency`` method,
+        such that the ``adjacent_tiles`` attribute of each tile in the tileset
+        becomes populated, using the tileset-level ``adjacencies`` attribute.
+        """
+        for row in self.tiles:
+            for tile in row:
+                tile.initialise_adjacency()
+        return
+
     def __repr__(self):
-        return f"A set of {len(self.segments[0])}x{len(self.segments)} tiles."
+        return f"A set of {len(self.shape[0])}x{len(self.shape[1])} tiles."
 
 def segment(tiling_grid: np.ndarray) -> list:
     """
@@ -152,7 +167,7 @@ def detect_wire_orientation(on: bool, img: Image):
         colour = game_colours['wire_on_in']
     else:
         colour = game_colours['wire_off_in']
-    print(f"{ptime()} Scanning wire coords...")
+    #print(f"{ptime()} Scanning wire coords...")
     wire_activation = np.all(img == colour, axis=-1)
     # iterate over 4 quadrants, return labels of those containing wire coords
     return detect_quad_members(wire_activation)
@@ -162,17 +177,18 @@ def detect_quad_members(member_activations: np.ndarray):
     Detect which quadrants the wire(s) on a given tile are in.
     """
     assert member_activations.dtype == bool
-    print(f"{ptime()} Detecting quadrant members...")
+    #print(f"{ptime()} Detecting quadrant members...")
     orientation_vec = []
     global orient_dict
     for i in np.arange(4):
         quad_name = list(orient_dict.keys())[i]
         if detect_quad_member(quad_name, member_activations):
-            print(f"{ptime()} Detected {quad_name} quadrant")
+            #print(f"{ptime()} Detected {quad_name} quadrant")
             orientation_vec += [quad_name]
         else:
-            print(f"{ptime()} Nothing in {quad_name} quadrant")
-    print(orientation_vec)
+            #print(f"{ptime()} Nothing in {quad_name} quadrant")
+            pass
+    #print(orientation_vec)
     return orientation_vec
 
 def detect_quad_member(quad: str, member_activations: np.ndarray):
@@ -191,7 +207,7 @@ def read_palette(palette: dict, img: Image):
     Read in the scanned tile dictionary and interpret it to produce the
     proper component class. Must return a component else raises an error.
     """
-    print(f"{ptime()} Reading palette...")
+    #print(f"{ptime()} Reading palette...")
     # as interpreted in .sym_dict.out_1_state.out_to_direction:
     orient_enc = dict(zip(["up","right","down","left"], np.arange(4)))
     # if border panel/grid then raise error - indicates segmentation failed
@@ -256,20 +272,115 @@ class tile(object):
         self.__parent__ = tset
         self.image = image_segment
         self.fixed = np.zeros(4, dtype=bool)
-        self.avoid = []
+        self.avoid = np.zeros(4, dtype=bool)
         self.palette = scan_tile(self.image)
         self.component = read_palette(self.palette, self.image)
         self.solved = None
-        if self.component is None:
-            self.solve()
-        else:
-            self.solved = False
+        self._reconfigured = None
         assert len(xys_xye) == len(xys_xye[0]) == len(xys_xye[1]) == 2
         assert np.all([[type(i) == int for i in j] for j in xys_xye])
         self.xy_coords = xys_xye
         self.row = tile_row
         self.col = tile_n
+        self._adjacent_tiles = None
+
+    def initialise_adjacency(self):
         self.adjacent_tiles = self.get_adjacent_tiles()
+        self.initialise_solve_state()
+        return
+
+    def initialise_solve_state(self):
+        """
+        Technically not initialisation, it's initialised as None. Sets
+        ``self.solved`` up as a boolean, and importantly also is now able
+        to set ``self.avoid[a]`` for each blank tile ``t`` as well as for
+        all ``t_a.avoid[a_inv]`` (i.e. the edge of the inverse direction,
+        across the border of the blank tile). This function is called from
+        within ``tile.initialise_adjacency`` meaning it can access adjacent
+        tiles, which warrants postponing this outside of``tile.__init__``.
+        """
+        # TODO: do this after initialising adj. so you can set ``avoid[a]``
+        # for each blank tile ``t`` as well as for all ``t_a.avoid[a_inv]``
+        # TODO: also check solvable? e.g. if a blank tile-adjacent tile
+        # gets an avoid set, this may fix (solve) it, e.g. a corner wire
+        assert self.solved is None
+        if self.component is None:
+            self.solve()
+            for (a, t_a) in self.adjacent_tiles.items():
+                if t_a.solved:
+                    continue
+                a_inv = (a + 2) % 4
+                t_a.set_avoid([a_inv])
+        else:
+            self.solved = False
+        return
+
+    @property
+    def adjacent_tiles(self):
+        return self._adjacent_tiles
+
+    @adjacent_tiles.setter
+    def adjacent_tiles(self, vals: dict):
+        assert list(vals.keys()) == list(range(0,4))
+        self._adjacent_tiles = vals
+        return
+
+    def set_avoid(self, a: list):
+        assert type(a) == list
+        assert np.all(np.isin(a, range(0,4)))
+        if np.all(self.avoid[a]):
+            # redundant call, this has already been set
+            return
+        self.avoid[a] = True
+        # TODO: return early if the avoid is set? or assert need to set it?
+        #
+        self.reconfigure()
+        if not self.solved:
+            self.check_solvable()
+        return
+
+    @property
+    def reconfigured(self):
+        return self._reconfigured
+
+    @reconfigured.setter(self, is_reconfigured):
+        self._reconfigured = is_reconfigured
+        return
+        # TODO: will self._reconfigured ever be False??
+        # if it's only ever None or True, this is silly, initialise as False
+
+    def reconfigure(self):
+        """
+        After an update to the ``avoid`` vector, ensure that the tile's
+        output directions are not now invalid - and if so, modify them.
+        """
+        # TODO: ensure if avoid = current out direction then the direction
+        # vector changes to a valid one. There are 2 ways I could do this:
+        # - 1) set a boolean, indicating whether rotated from initial position
+        # - 2) set an integer, indicating the rotation from initial position
+        # I would use 1) if the component state was being modified, and then
+        # once the puzzle was solved, calculate the rotation for any with this
+        # boolean set to True. I would use 2) if I wasn't modifying component
+        # direction [i.e. ``tile.component.out``], however if I did this then
+        # the component would no longer be able to directly provide the
+        # directions it had been moved to, which seems needlessly difficult.
+        # ==CONCLUSION== set a boolean, and store initial directions on init.
+        assert not self.solved # don't call this if already marked solved
+        if self.reconfigured is None:
+            # this is the first time it's been reconfigured
+            self.reconfigured = True
+        self.component.honour_configuration(self.avoid, self.fixed):
+        return
+
+    def check_solvable(self):
+        """
+        After an update to the ``avoid`` or ``fixed`` vector(s),
+        check if conditions are met for the tile to be marked solved.
+        """
+        assert not self.solved # don't call this if already marked solved
+        if self.component.check_solved(self.avoid, self.fixed):
+            self.solve()
+        return
 
     def solve(self):
         """
@@ -300,15 +411,19 @@ class tile(object):
         where ``a`` is a 0-based clockwise integer from top.
         """
         #assert n > 0
+        assert 0 <= a < 4
         assert n == 1 # not ready to do multi-step yet
-        adjacencies = self.__parent__.adjacencies
+        adjacencies = self.__parent__.adjacencies.adjacencies
         #if n > 1:
         #    while n:
         #        t_a = adjacencies[a][n]
         #        n -= 1
         #    t_a = adjacencies[a][n]
-        t_a = adjacencies[a]
-        return t_a
+        adjacency_index = (self.row*self.__parent__.shape[0])+self.col
+        if a % 3 == 0:
+            return adjacencies[adjacency_index].adj[a].interface.pre
+        else:
+            return adjacencies[adjacency_index].adj[a].interface.post
 
     def __repr__(self):
         return f"{self.row}:{self.col}"

@@ -63,8 +63,20 @@ class adjacency(object):
         return adjacence(a, self.__parent__, self.interface_index[a])
 
     def __repr__(self):
-        # TODO
-        return "(Adjacency)"
+        r_top_line = []
+        r_bottom_line = []
+        for l in [self.adj[x].interface for x in np.arange(4)]:
+            for (i, s) in enumerate(l.__repr__().split('\n')):
+                assert i < 2
+                if len(l.__repr__().split('\n')) == 1:
+                    r_top_line.append(' ' * len(s))
+                    r_bottom_line.append(s)
+                else:
+                    if i == 0:
+                        r_top_line.append(s)
+                    else:
+                        r_bottom_line.append(s)
+        return f"{' | '.join(r_top_line)}\n{' | '.join(r_bottom_line)}"
 
 class adjacence(object):
     """
@@ -80,8 +92,8 @@ class adjacence(object):
         return
 
     def __repr__(self):
-        # TODO
-        return "(Adjacence)"
+        # TODO: won't need to print this, ``adjacency`` has a nice __repr__
+        return f"Adjacence (interface {self.interface_index} : {self.direction})"
 
     @property
     def interface(self):
@@ -194,12 +206,10 @@ class interface(object):
                     t_i = int(((i - (i % n))/2) + (i % n))
                     return tset.tiles[int((t_i - (t_i % n)) / n)][t_i % n]
                 else:
-                    # TODO: FIX: self.row for above/below differ by 2!
-                    # TODO: is this fine? is this expected, or failed to
-                    #       translate interface rows back to tile rows?
                     # a == 0 so as for a == 2, but also decrement i by 2n
                     # (the 0th row was removed by the ``i < n`` test)
-                    t_i = int(((i - 2*n - (i % n))/2) - n + (i % n))
+                    # TODO: multistep: subtract ``(step-1)*n``, default step=1
+                    t_i = int(((i - 2*n - (i % n))/2) + (i % n))
                     return tset.tiles[int((t_i - (t_i % n)) / n)][t_i % n]
             else:
                 if a == 1:

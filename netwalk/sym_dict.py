@@ -128,6 +128,34 @@ class server(object):
             self.directions = self.out.direction
         self.state = on_state(True)
 
+    def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
+        # if the fixed directions are the same as the output directions
+        # then the outputs were found
+        self.validate_edges(fixed, avoid)
+        uni = type(self.out.out) == np.typeDict['int'] #self.out==out_1_state?
+        if uni:
+            out_dirs = self.out.all_dirs
+        else:
+            out_dirs = self.out.out
+        out_fixed = np.intersect1d(np.where(out_dirs), np.where(fixed))
+        target = np.sum(out_dirs)
+        if out_fixed.size == target:
+            # the output direction(s) is(/are) fixed, it's been solved
+            return True
+        else:
+            # if the sum of fixed + avoid directions = the total number of
+            # directions (4) minus the target number of outputs, this means
+            # current directions are the only option, i.e. should be fixed
+            # TODO: rewrite this to be out_fixed not fixed:
+            return np.sum(avoid, fixed) == (4 - target)
+
+    @staticmethod
+    def validate_edges(fixed, avoid):
+        # a fixed edge cannot also be an avoid edge
+        mutual = np.intersect1d(np.where(fixed), np.where(avoid))
+        assert mutual.size == 0
+        return
+
     def __repr__(self):
         return f'A server (always on), with ports pointing {self.out!r}.'
 
@@ -143,6 +171,26 @@ class terminal(object):
         self.directions = self.out.all_dirs
         self.state = on_state(on)
 
+    def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
+        # if the fixed direction is the same as the output direction
+        # then the output was found
+        self.validate_edges(fixed, avoid)
+        out_fixed = np.intersect1d(np.where(fixed), np.where(self.directions))
+        if out_fixed.size > 0:
+            # the output direction is fixed, it's been solved
+            return True
+        else:
+            # if the sum of fixed + avoid directions is 3, this means the
+            # current out direction is the only option, i.e. should be fixed
+            return np.sum(avoid, fixed) == 3
+
+    @staticmethod
+    def validate_edges(fixed, avoid):
+        # a fixed edge cannot also be an avoid edge
+        mutual = np.intersect1d(np.where(fixed), np.where(avoid))
+        assert mutual.size == 0
+        return
+
     def __repr__(self):
         return f'A terminal pointing {self.out!r}, switched {self.state!r}.'
 
@@ -157,8 +205,16 @@ class l_wire(object):
         self.directions = self.horizontal.horizontal.all_dirs
         self.state = on_state(on)
 
+    def is_horizontal(self):
+        return self.horizontal.horizontal.horizontal
+
+    def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
+        # if the fixed directions are the same as the output directions
+        # then the outputs were found
+        return np.any(fixed) or np.any(avoid)
+
     def __repr__(self):
-        return f'A line wire pointing {self.horizontal!r}ly ({self.state}).'
+        return f'A line wire pointing {self.horizontal!r}ly ({self.state!r}).'
 
 class c_wire(object):
     """
@@ -175,6 +231,34 @@ class c_wire(object):
 
     def __repr__(self):
         return f'A corner wire pointing {self.out!r} ({self.state!r}).'
+
+    def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
+        # if the fixed directions are the same as the output directions
+        # then the outputs were found
+        self.validate_edges(fixed, avoid)
+        out_dirs = self.out.out
+        out_fixed = np.intersect1d(np.where(out_dirs), np.where(fixed))
+        if out_fixed.size == 2:
+            # the output direction(s) is(/are) fixed, it's been solved
+            return True
+        if out_fixed.size == 1:
+            # the opposite should be avoid but I can't affect it here (can I?)
+            out_dir = out_fixed[0]
+            avoid_dir = (out_dir + 2) % 4
+            avoid[avoid_dir] = True # updates the ``tile.avoid`` attribute
+        if np.sum(avoid) == 2:
+            return True
+        # else still 2-3 degrees of freedom
+        return False
+
+    @staticmethod
+    def validate_edges(fixed, avoid):
+        # at most 2 edges can be avoided
+        assert sum(avoid) <= 2
+        # a fixed edge cannot also be an avoid edge
+        mutual = np.intersect1d(np.where(fixed), np.where(avoid))
+        assert mutual.size == 0
+        return
 
     @staticmethod
     def parse_corner(corner: int):
@@ -208,7 +292,28 @@ class t_wire(object):
         self.state = on_state(on)
 
     def __repr__(self):
-        return f'A T wire pointing {self.out!r} ({self.on!r}.'
+        return f'A T wire pointing {self.out!r} ({self.state!r}.'
+
+    def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
+        # if the fixed directions are the same as the output directions
+        # then the outputs were found
+        self.validate_edges(fixed, avoid)
+        out_dirs = self.out.out
+        out_fixed = np.intersect1d(np.where(out_dirs), np.where(fixed))
+        if out_fixed.size == 3 or np.any(avoid):
+            # all output directions are fixed/1 is avoided, it's been solved
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def validate_edges(fixed, avoid):
+        # at most 1 edge can be avoided
+        assert sum(avoid) <= 1
+        # a fixed edge cannot also be an avoid edge
+        mutual = np.intersect1d(np.where(fixed), np.where(avoid))
+        assert mutual.size == 0
+        return
 
     @staticmethod
     def parse_facing(facing: int):
