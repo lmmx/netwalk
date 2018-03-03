@@ -18,6 +18,19 @@ class out_1_state(object):
     def __repr__(self):
         return self.direction
 
+    def switch_direction(self, to_index):
+        """
+        Switch the direction of the output connection to the given one
+        (used when a clash between a tile's 'avoid' edge list and the
+        currently used output direction of a component is detected).
+        """
+        assert to_index in np.arange(4)
+        # update self.out int, then self.direction and self.all_dirs
+        self.out = to_index
+        self.direction = self.out_to_direction(self.out)
+        self.all_dirs = self.out_to_all_dirs(self.out)
+        return
+
     @staticmethod
     def out_to_direction(out: int) -> str:
         dir_dict = dict(zip(np.arange(4), ["up","right","down","left"]))
@@ -45,6 +58,12 @@ class out_2h_state(object):
     def __repr__(self):
         return self.direction
 
+    def switch_direction(self):
+        self.horizontal = not self.horizontal
+        self.direction = self.out_to_direction(self.horizontal)
+        self.all_dirs = self.out_to_all_dirs(self.horizontal)
+        return
+
     @staticmethod
     def out_to_direction(out: bool) -> str:
         if out:
@@ -71,6 +90,26 @@ class out_4_state(object):
     def __repr__(self):
         return self.dirs_to_str(self.direction)
 
+    def switch_directions(self, from_to_pair_list: list):
+        """
+        Switch the directions of the output connections - note that
+        this method leaves the matter of whether the directions are
+        valid to the code that calls it (i.e. it can, but should not
+        be used to, switch a component to an invalid state, e.g. a
+        corner wire must keep output directions 'beside' each other).
+        Pass in a list of (from, to) integer pairs [list of 2-tuples]
+        (used when a clash between a tile's 'avoid' edge list and the
+        currently used output direction of a component is detected).
+        """
+        # switch the values at the given ``self.out`` array indices
+        for (f, t) in from_to_pair_list:
+            if not type(f) == type(t) == int:
+                f, t = int(f), int(t)
+            assert np.all(np.isin((f, t), np.arange(4)))
+            self.out[f], self.out[t] = self.out[t], self.out[f]
+        self.direction = self.out_to_direction(self.out)
+        return
+
     @staticmethod
     def dirs_to_str(dir_vec: list) -> str:
         if len(dir_vec) == 1:
@@ -85,8 +124,10 @@ class out_4_state(object):
     @staticmethod
     def out_to_direction(out: np.ndarray) -> list:
         dir_dict = dict(zip(np.arange(4), ["up","right","down","left"]))
-        if out.dtype != np.dtype('bool'):
+        if type(out) != np.ndarray:
             raise TypeError(f"``out`` != ``np.ndarray`` (got {type(out)}.")
+        elif out.dtype != bool:
+            raise TypeError(f"``out.dtype`` != ``bool`` (got {out.dtype}.")
         elif len(out) != 4:
             raise ValueError(f"``len(out) != 4`` (got length {len(out)}.")
         else:
@@ -100,6 +141,10 @@ class h_state(object):
     """
     def __init__(self, horizontal: bool):
         self.horizontal = out_2h_state(horizontal)
+
+    def switch_direction(self):
+        self.horizontal.switch_direction()
+        return
 
     def __repr__(self):
         return 'horizontal' if self.horizontal.horizontal else 'vertical'
@@ -120,34 +165,91 @@ class on_state(object):
 
 class server(object):
     def __init__(self, out):
-        if type(out) == np.typeDict['int']:
+        self.uni = type(out) == np.typeDict['int']
+        if self.uni:
             self.out = out_1_state(out)
             self.directions = self.out.all_dirs
         else:
             self.out = out_4_state(out)
-            self.directions = self.out.direction
+            self.direction_list = self.out.direction
+            self.directions = self.out.out
         self.state = on_state(True)
+        self._start_config = None
+
+    @property
+    def start_config(self):
+        return self._start_config
+
+    @start_config.setter
+    def start_config(self, config):
+        assert self._start_config is None
+        self._start_config = config
+        return
+
+    def find_configuration(self, avoid, fixed, enforce: list = []):
+        """
+        Any overlapping directions between output and avoid are 'breaches',
+        so must be changed in ``self.directions`` subject to any fixed
+        directions. If no overlapping [breaching] directions then do nothing.
+        Raise an error if the avoid-out overlap [breach] cannot be resolved.
+        """
+        if len(enforce) > 0:
+            assert len(enforce) <= np.sum(self.directions)
+            for a in enforce:
+                used = np.where(self.directions)[0]
+                available = np.intersect1d(np.where(fixed == False), used)
+                if not a in used:
+                    self.update_out_dir(available[0], a)
+                if not fixed[a]:
+                    fixed[a] = True
+        breach = np.intersect1d(np.where(self.directions), np.where(avoid))
+        if breach.size > 0:
+            assert breach.size == 1
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert available.size > 0 # no tiles are unsolvable
+            # could take a random position, but take the first available
+            self.update_out_dir(breach[0], available[0])
+        return
+
+    def update_out_dir(self, from_index, to_index):
+        """
+        Update the direction state from an output in the specified
+        ``from_index`` direction to move to the ``to_index`` direction,
+        where the index is an integer 0-3 (indicating clockwise from top).
+        """
+        if self.uni:
+            # handle out_1_state
+            self.out.switch_direction(from_index, to_index)
+            self.directions = self.out.all_dirs
+        else:
+            # handle out_4_state - pass in single pair as list (even if
+            # ``self.uni`` is False, can only have 1 avoid direction,
+            # thus can only have 1 breach thus only 1 pair to switch)
+            self.out.switch_directions([(from_index, to_index)])
+            self.direction_list = self.out.direction
+            self.directions = self.out.out
+        return
 
     def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
         # if the fixed directions are the same as the output directions
         # then the outputs were found
         self.validate_edges(fixed, avoid)
         uni = type(self.out.out) == np.typeDict['int'] #self.out==out_1_state?
-        if uni:
-            out_dirs = self.out.all_dirs
-        else:
-            out_dirs = self.out.out
-        out_fixed = np.intersect1d(np.where(out_dirs), np.where(fixed))
-        target = np.sum(out_dirs)
+        out_fixed = np.intersect1d(np.where(self.directions), np.where(fixed))
+        target = np.sum(self.directions)
         if out_fixed.size == target:
             # the output direction(s) is(/are) fixed, it's been solved
             return True
         else:
-            # if the sum of fixed + avoid directions = the total number of
-            # directions (4) minus the target number of outputs, this means
-            # current directions are the only option, i.e. should be fixed
-            # TODO: rewrite this to be out_fixed not fixed:
-            return np.sum(avoid, fixed) == (4 - target)
+            # ==POSSIBILITY== 1 output, not fixed: only solve if av. all 3
+            if uni:
+                return np.sum(avoid) == (4 - target) # i.e. 3
+        # ==ONLY POSSIBILITY== 3 outputs, 1 or 2 fixed: only solve if avoid 1
+        assert target == 3 # not coded for 2 server outputs
+        # there are not 3 out_fixed, so can only solve if avoid 1
+        assert np.sum(avoid) < 2 # can't av. 2 for a 3-dir. component!
+        return np.sum(avoid) == 1
 
     @staticmethod
     def validate_edges(fixed, avoid):
@@ -170,6 +272,54 @@ class terminal(object):
         self.out = out_1_state(out)
         self.directions = self.out.all_dirs
         self.state = on_state(on)
+        self._start_config = None
+
+    @property
+    def start_config(self):
+        return self._start_config
+
+    @start_config.setter
+    def start_config(self, config):
+        assert self._start_config is None
+        self._start_config = config
+        return
+
+    def find_configuration(self, avoid, fixed, enforce: list = []):
+        """
+        Any overlapping directions between output and avoid are 'breaches',
+        so must be changed in ``self.directions`` subject to any fixed
+        directions. If no overlapping [breaching] directions then do nothing.
+        Raise an error if the avoid-out overlap [breach] cannot be resolved.
+        """
+        if len(enforce) > 0:
+            assert len(enforce) <= np.sum(self.directions)
+            for a in enforce:
+                used = np.where(self.directions)[0]
+                available = np.intersect1d(np.where(fixed == False), used)
+                if not a in used:
+                    self.update_out_dir(available[0], a)
+                if not fixed[a]:
+                    fixed[a] = True
+        breach = np.intersect1d(np.where(self.directions), np.where(avoid))
+        if breach.size > 0:
+            assert breach.size == 1
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert available.size > 0 # no tiles are unsolvable
+            # could take a random position, but take the first available
+            self.update_out_dir(breach[0], available[0])
+        return
+
+    def update_out_dir(self, from_index, to_index):
+        """
+        Update the direction state from an output in the specified
+        ``from_index`` direction to move to the ``to_index`` direction,
+        where the index is an integer 0-3 (indicating clockwise from top).
+        """
+        # handle out_1_state
+        self.out.switch_direction(from_index, to_index)
+        self.directions = self.out.all_dirs
+        return
 
     def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
         # if the fixed direction is the same as the output direction
@@ -182,7 +332,7 @@ class terminal(object):
         else:
             # if the sum of fixed + avoid directions is 3, this means the
             # current out direction is the only option, i.e. should be fixed
-            return np.sum(avoid, fixed) == 3
+            return np.sum(avoid) == 3
 
     @staticmethod
     def validate_edges(fixed, avoid):
@@ -204,6 +354,51 @@ class l_wire(object):
         self.horizontal = h_state(horizontal)
         self.directions = self.horizontal.horizontal.all_dirs
         self.state = on_state(on)
+        self._start_config = None
+
+    @property
+    def start_config(self):
+        return self._start_config
+
+    @start_config.setter
+    def start_config(self, config):
+        assert self._start_config is None
+        self._start_config = config
+        return
+
+    def find_configuration(self, avoid, fixed, enforce: list = []):
+        """
+        Any overlapping directions between output and avoid are 'breaches',
+        so must be changed in ``self.directions`` subject to any fixed
+        directions. If no overlapping [breaching] directions then do nothing.
+        Raise an error if the avoid-out overlap [breach] cannot be resolved.
+        """
+        if len(enforce) > 0:
+            assert len(enforce) <= np.sum(self.directions)
+            for a in enforce:
+                used = np.where(self.directions)[0]
+                available = np.intersect1d(np.where(fixed == False), used)
+                if not a in used:
+                    self.switch_direction()
+                if not fixed[a]:
+                    fixed[a] = True
+        breach = np.intersect1d(np.where(self.directions), np.where(avoid))
+        if breach.size > 0:
+            assert breach.size <= 2
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert unused[0].size == available.size == 2
+            self.switch_direction() # toggle horizontal/vertical
+        return
+
+    def switch_direction(self):
+        """
+        Toggle the direction state, which is either horizontal or vertical.
+        """
+        # handle h_state
+        self.horizontal.switch_direction()
+        self.directions = self.horizontal.horizontal.all_dirs
+        return
 
     def is_horizontal(self):
         return self.horizontal.horizontal.horizontal
@@ -226,8 +421,63 @@ class c_wire(object):
     def __init__(self, corner: int, on: bool):
         self.corner = c_wire.parse_corner(corner)
         self.out = out_4_state(self.corner)
-        self.directions = self.out.direction
+        self.direction_list = self.out.direction
+        self.directions = self.out.out
         self.state = on_state(on)
+        self._start_config = None
+
+    @property
+    def start_config(self):
+        return self._start_config
+
+    @start_config.setter
+    def start_config(self, config):
+        assert self._start_config is None
+        self._start_config = config
+        return
+
+    def find_configuration(self, avoid, fixed, enforce: list = []):
+        """
+        Any overlapping directions between output and avoid are 'breaches',
+        so must be changed in ``self.directions`` subject to any fixed
+        directions. If no overlapping [breaching] directions then do nothing.
+        Raise an error if the avoid-out overlap [breach] cannot be resolved.
+        """
+        if len(enforce) > 0:
+            assert len(enforce) <= np.sum(self.directions)
+            for a in enforce:
+                used = np.where(self.directions)[0]
+                available = np.intersect1d(np.where(fixed == False), used)
+                if not a in used:
+                    self.update_out_dir(available[0], a)
+                if not fixed[a]:
+                    fixed[a] = True
+        breach = np.intersect1d(np.where(self.directions), np.where(avoid))
+        if breach.size == 2:
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert available.size == unused.size == 2
+            # there is only one option: unused become new out directions
+            self.update_out_dir(list(zip(breach, available)))
+        elif breach.size == 1:
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert available.size > 0 # no tiles are unsolvable
+            # could take a random position, but take the first available
+            self.update_out_dir([(breach[0], available[0])])
+        return
+
+    def update_out_dir(self, from_to_pair_list: list):
+        """
+        Update the direction state from an output in the specified
+        ``from_index`` direction to move to the ``to_index`` direction,
+        where the index is an integer 0-3 (indicating clockwise from top).
+        """
+        # handle out_4_state
+        self.out.switch_directions(from_to_pair_list)
+        self.direction_list = self.out.direction
+        self.directions = self.out.out
+        return
 
     def __repr__(self):
         return f'A corner wire pointing {self.out!r} ({self.state!r}).'
@@ -288,11 +538,61 @@ class t_wire(object):
     def __init__(self, facing: int, on: bool):
         self.facing = t_wire.parse_facing(facing)
         self.out = out_4_state(self.facing)
-        self.directions = self.out.direction
+        self.direction_list = self.out.direction
+        self.directions = self.out.out
         self.state = on_state(on)
+        self._start_config = None
+
+    @property
+    def start_config(self):
+        return self._start_config
+
+    @start_config.setter
+    def start_config(self, config):
+        assert self._start_config is None
+        self._start_config = config
+        return
+
+    def find_configuration(self, avoid, fixed, enforce: list = []):
+        """
+        Any overlapping directions between output and avoid are 'breaches',
+        so must be changed in ``self.directions`` subject to any fixed
+        directions. If no overlapping [breaching] directions then do nothing.
+        Raise an error if the avoid-out overlap [breach] cannot be resolved.
+        """
+        if len(enforce) > 0:
+            assert len(enforce) <= np.sum(self.directions)
+            for a in enforce:
+                used = np.where(self.directions)[0]
+                available = np.intersect1d(np.where(fixed == False), used)
+                if not a in used:
+                    self.update_out_dir(available[0], a)
+                if not fixed[a]:
+                    fixed[a] = True
+        breach = np.intersect1d(np.where(self.directions), np.where(avoid))
+        if breach.size > 0:
+            unused = np.where(self.directions == False)
+            available = np.intersect1d(np.where(avoid == False), unused)
+            assert available.size == breach.size == 1 # only one option
+            self.update_out_dir(breach[0], available[0])
+        return
+
+    def update_out_dir(self, from_index, to_index):
+        """
+        Update the direction state from an output in the specified
+        ``from_index`` direction to move to the ``to_index`` direction,
+        where the index is an integer 0-3 (indicating clockwise from top).
+        """
+        # handle out_4_state - pass in single pair as list (can only
+        # have 1 avoid direction, thus 1 breach, 1 pair to switch)
+        self.out.switch_directions([(from_index, to_index)])
+        self.direction_list = self.out.direction
+        self.directions = self.out.out
+        self.facing = type(self).out_to_facing(self.directions)
+        return
 
     def __repr__(self):
-        return f'A T wire pointing {self.out!r} ({self.state!r}.'
+        return f'A T wire pointing {self.out!r} ({self.state!r}).'
 
     def check_solved(self, avoid: np.ndarray, fixed: np.ndarray):
         # if the fixed directions are the same as the output directions
@@ -300,11 +600,7 @@ class t_wire(object):
         self.validate_edges(fixed, avoid)
         out_dirs = self.out.out
         out_fixed = np.intersect1d(np.where(out_dirs), np.where(fixed))
-        if out_fixed.size == 3 or np.any(avoid):
-            # all output directions are fixed/1 is avoided, it's been solved
-            return True
-        else:
-            return False
+        return (out_fixed.size == 3 or np.any(avoid))
 
     @staticmethod
     def validate_edges(fixed, avoid):
@@ -326,3 +622,12 @@ class t_wire(object):
         out = np.ones(4, dtype=bool)
         out[excl] = False
         return out
+
+    @staticmethod
+    def out_to_facing(out: np.ndarray):
+        """
+        Convert a bool 4-tuple into the facing int representation.
+        """
+        facing = np.where(out == False)[0]
+        assert facing.size == 1
+        return int(facing[0]) # turn from numpy int to regular int

@@ -58,6 +58,9 @@ class tileset(object):
         for row in self.tiles:
             for tile in row:
                 tile.initialise_adjacency()
+        for row in self.tiles:
+            for tile in row:
+                tile.initialise_solve_state()
         return
 
     def __repr__(self):
@@ -276,7 +279,7 @@ class tile(object):
         self.palette = scan_tile(self.image)
         self.component = read_palette(self.palette, self.image)
         self.solved = None
-        self._reconfigured = None
+        self._reconfigured = False
         assert len(xys_xye) == len(xys_xye[0]) == len(xys_xye[1]) == 2
         assert np.all([[type(i) == int for i in j] for j in xys_xye])
         self.xy_coords = xys_xye
@@ -286,7 +289,6 @@ class tile(object):
 
     def initialise_adjacency(self):
         self.adjacent_tiles = self.get_adjacent_tiles()
-        self.initialise_solve_state()
         return
 
     def initialise_solve_state(self):
@@ -297,22 +299,41 @@ class tile(object):
         all ``t_a.avoid[a_inv]`` (i.e. the edge of the inverse direction,
         across the border of the blank tile). This function is called from
         within ``tile.initialise_adjacency`` meaning it can access adjacent
-        tiles, which warrants postponing this outside of``tile.__init__``.
+        tiles, which warrants postponing this outside of ``tile.__init__``.
         """
-        # TODO: do this after initialising adj. so you can set ``avoid[a]``
-        # for each blank tile ``t`` as well as for all ``t_a.avoid[a_inv]``
-        # TODO: also check solvable? e.g. if a blank tile-adjacent tile
-        # gets an avoid set, this may fix (solve) it, e.g. a corner wire
-        assert self.solved is None
         if self.component is None:
-            self.solve()
+            if self.solved is None:
+                self.solve()
+            else:
+                # should have only been solved via ``set_avoid`` if blank
+                assert self.solved
             for (a, t_a) in self.adjacent_tiles.items():
                 if t_a.solved:
                     continue
                 a_inv = (a + 2) % 4
-                t_a.set_avoid([a_inv])
+                t_a.set_avoid([a_inv]) # no edges to fix, only to avoid
         else:
-            self.solved = False
+            if self.solved is None:
+                # will work if fixed/avoid are set when adjacent tile solved:
+                # don't call check_solvable directly, call from fix_connection
+                # self.check_solvable()
+                # TODO: implement fix_connection after writing reconfigure
+                # - The tiles that are used at solve time must be fixed
+                # - If a tile is adjacent to a solved tile with a fixed out
+                #   direction bordering on the tile [i.e. t_a.a_inv is fixed]
+                #   then must reconfigure the tile so its component uses that
+                #   direction, then fix it (``fix_connection(a)``)
+                # - The problem is that the reconfigure method doesn't (yet!)
+                #   have any way to specify a direction to fix, only that the
+                #   fixed directions should be used as constraints (i.e. it
+                #   can retain a fixed direction, but not create a new one),
+                #   which is what this method (``fix_connection``) would require
+                # - I.e., the logic should be "fix this direction AS OUTPUT"
+                #   so if it's currently empty then something must swap with
+                #   the empty edge to make it provide the required connection
+                # - "fix_connection" is a better name than "set_fixed", as
+                #   the edge isn't being fixed until it's been modified.
+                pass
         return
 
     @property
@@ -321,55 +342,64 @@ class tile(object):
 
     @adjacent_tiles.setter
     def adjacent_tiles(self, vals: dict):
-        assert list(vals.keys()) == list(range(0,4))
+        assert list(vals.keys()) == list(np.arange(4))
         self._adjacent_tiles = vals
+        return
+
+    def fix_connection(self, a: list):
+        assert type(a) == list
+        assert np.all(np.isin(a, np.arange(4)))
+        if self.component is None:
+            return
+        self.component.find_configuration(self.avoid, self.fixed, enforce=a)
+        assert np.all(self.fixed[a])
+        if not self.solved:
+            self.check_solvable() # TODO: FIX: this is cyclic...
         return
 
     def set_avoid(self, a: list):
         assert type(a) == list
-        assert np.all(np.isin(a, range(0,4)))
+        assert np.all(np.isin(a, np.arange(4)))
         if np.all(self.avoid[a]):
             # redundant call, this has already been set
             return
         self.avoid[a] = True
         # TODO: return early if the avoid is set? or assert need to set it?
-        #
-        self.reconfigure()
+        if not self.component is None:
+            self.reconfigure()
         if not self.solved:
-            self.check_solvable()
+            self.check_solvable() # TODO: FIX: this is cyclic...
         return
 
     @property
     def reconfigured(self):
         return self._reconfigured
 
-    @reconfigured.setter(self, is_reconfigured):
+    @reconfigured.setter
+    def reconfigured(self, is_reconfigured):
+        assert type(is_reconfigured) == bool
         self._reconfigured = is_reconfigured
         return
-        # TODO: will self._reconfigured ever be False??
-        # if it's only ever None or True, this is silly, initialise as False
 
     def reconfigure(self):
         """
         After an update to the ``avoid`` vector, ensure that the tile's
         output directions are not now invalid - and if so, modify them.
+        This method calls the component's ``find_configuration`` method,
+        to find an allowed configuration [of output directions in use]
+        subject to the [tile-level] avoid/fixed constraints, by switching
+        the output directions to a valid alternative if 'breached' by an
+        update (from e.g. ``set_avoid``). Note that this is done before
+        ``check_solvable``, and as such may result in using the only
+        remaining degree of freedom (solving the tile), but no attempt is
+        made to solve the tile within this method - instead it is left for
+        ``check_solvable`` to 'discover'.
         """
-        # TODO: ensure if avoid = current out direction then the direction
-        # vector changes to a valid one. There are 2 ways I could do this:
-        # - 1) set a boolean, indicating whether rotated from initial position
-        # - 2) set an integer, indicating the rotation from initial position
-        # I would use 1) if the component state was being modified, and then
-        # once the puzzle was solved, calculate the rotation for any with this
-        # boolean set to True. I would use 2) if I wasn't modifying component
-        # direction [i.e. ``tile.component.out``], however if I did this then
-        # the component would no longer be able to directly provide the
-        # directions it had been moved to, which seems needlessly difficult.
-        # ==CONCLUSION== set a boolean, and store initial directions on init.
         assert not self.solved # don't call this if already marked solved
-        if self.reconfigured is None:
-            # this is the first time it's been reconfigured
-            self.reconfigured = True
-        self.component.honour_configuration(self.avoid, self.fixed):
+        if not self.reconfigured:
+            self.reconfigured = True # first time it's been reconfigured
+            self.component.start_config = self.component.directions.copy()
+        self.component.find_configuration(self.avoid, self.fixed)
         return
 
     def check_solvable(self):
@@ -378,17 +408,69 @@ class tile(object):
         check if conditions are met for the tile to be marked solved.
         """
         assert not self.solved # don't call this if already marked solved
+        if self.component is None:
+            self.solve()
+            return
         if self.component.check_solved(self.avoid, self.fixed):
             self.solve()
         return
 
     def solve(self):
         """
-        Declare a tile 'solved', and 'freeze' it on all sides.
+        Declare a tile 'solved', and 'freeze' it on all sides (used edges are
+        set to 'fixed', their other side is set to 'fixed' and that tile gets
+        updated ('reconfigured') such that its outputs connect up to it;
+        likewise, unused edges get set to 'avoid', their other side is set to
+        'avoid' and that tile gets updated ('reconfigured') such that its
+        outputs do not connect up to it). Note that while reconfiguring
+        adjacent tiles in this way, it is possible to constrain them such that
+        they become solved, and so this is checked for and done if possible.
         """
         self.solved = True
-        self.fixed.fill(True)
-        # maybe add an assert here for ``self.avoid`` in future
+        if self.component is None:
+            for a in np.arange(4):
+                a_inv = (a + 2) % 4
+                t_a = self.adjacent_tiles[a]
+                if not t_a.solved and not a_inv in t_a.avoid:
+                        t_a.set_avoid([a_inv])
+            return
+        ######################################################################
+        #################### == FIXING USED DIRECTIONS == ####################
+        ######################################################################
+        out_fixable = np.where(self.component.directions)[0]
+        out_unfixed = np.where(self.fixed == False)[0]
+        out_to_fix = np.intersect1d(out_fixable, out_unfixed)
+        if out_to_fix.size > 0:
+            # N.B. may already be fixed but stll need to fix connections,
+            # so even if out_to_fix.size == 0, don't return yet
+            self.fixed[out_to_fix] = True
+        # now ensure all connections [on adjacent tile/inverse side] get fixed
+        out_fixed = np.union1d(out_fixable, out_to_fix)
+        # get all used [out] directions (now set to fixed) reconfigure/fix inv
+        for a in out_fixed:
+            a_inv = (a + 2) % 4
+            t_a = t.adjacent_tiles[a]
+            if not a_inv in t_a.fixed and not t_a.solved:
+                t_a.fix_connection([a_inv])
+        ######################################################################
+        ################# == AVOIDING UNUSED DIRECTIONS == ###################
+        ######################################################################
+        # get all unused edge directions, set_avoid t_a[a_inv] and reconfigure
+        out_unused = np.where(self.component.directions == False)[0]
+        unused_unavoided = np.where(self.avoid == False)[0]
+        unused_to_avoid = np.intersect1d(out_unused, unused_unavoided)
+        if unused_to_avoid.size > 0:
+            # N.B. may be unused but need to set avoid vector explicitly,
+            # so even if unused_to_avoid.size == 0, don't return yet
+            self.avoid[out_to_avoid] = True
+        # ensure complementary edges [on adjacent tile/inverse side] avoid it
+        to_avoid = np.union1d(out_unused, unused_unavoided)
+        # get all unused [empty edge] directions, set to avoid
+        for a in to_avoid:
+            a_inv = (a + 2) % 4
+            t_a = t.adjacent_tiles[a]
+            if not a_inv in t_a.avoid and not t_a.solved:
+                t_a.set_avoid([a_inv])
         return
 
     def get_adjacent_tiles(self, A=np.arange(4)):
