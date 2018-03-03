@@ -64,7 +64,7 @@ class tileset(object):
         return
 
     def __repr__(self):
-        return f"A set of {len(self.shape[0])}x{len(self.shape[1])} tiles."
+        return f"A set of {self.shape[0]}x{self.shape[1]} tiles."
 
 def segment(tiling_grid: np.ndarray) -> list:
     """
@@ -158,7 +158,6 @@ def scan_tile(img: Image) -> dict:
         return detected_cols
     for label, rgb in game_colours.items():
         if detect_colour(rgb, img):
-            # print(f"Detected {label}...")
             detected_cols[label] = True
     return detected_cols
 
@@ -170,7 +169,6 @@ def detect_wire_orientation(on: bool, img: Image):
         colour = game_colours['wire_on_in']
     else:
         colour = game_colours['wire_off_in']
-    #print(f"{ptime()} Scanning wire coords...")
     wire_activation = np.all(img == colour, axis=-1)
     # iterate over 4 quadrants, return labels of those containing wire coords
     return detect_quad_members(wire_activation)
@@ -180,18 +178,14 @@ def detect_quad_members(member_activations: np.ndarray):
     Detect which quadrants the wire(s) on a given tile are in.
     """
     assert member_activations.dtype == bool
-    #print(f"{ptime()} Detecting quadrant members...")
     orientation_vec = []
     global orient_dict
     for i in np.arange(4):
         quad_name = list(orient_dict.keys())[i]
         if detect_quad_member(quad_name, member_activations):
-            #print(f"{ptime()} Detected {quad_name} quadrant")
             orientation_vec += [quad_name]
         else:
-            #print(f"{ptime()} Nothing in {quad_name} quadrant")
             pass
-    #print(orientation_vec)
     return orientation_vec
 
 def detect_quad_member(quad: str, member_activations: np.ndarray):
@@ -210,7 +204,6 @@ def read_palette(palette: dict, img: Image):
     Read in the scanned tile dictionary and interpret it to produce the
     proper component class. Must return a component else raises an error.
     """
-    #print(f"{ptime()} Reading palette...")
     # as interpreted in .sym_dict.out_1_state.out_to_direction:
     orient_enc = dict(zip(["up","right","down","left"], np.arange(4)))
     # if border panel/grid then raise error - indicates segmentation failed
@@ -354,12 +347,14 @@ class tile(object):
         self.component.find_configuration(self.avoid, self.fixed, enforce=a)
         assert np.all(self.fixed[a])
         if not self.solved:
-            self.check_solvable() # TODO: FIX: this is cyclic...
+            self.check_solvable() # call nesting begins here
         return
 
     def set_avoid(self, a: list):
         assert type(a) == list
         assert np.all(np.isin(a, np.arange(4)))
+        # assert so as not to set_avoid an already fixed direction!
+        assert not np.any(np.isin(a, np.where(self.fixed)))
         if np.all(self.avoid[a]):
             # redundant call, this has already been set
             return
@@ -368,7 +363,10 @@ class tile(object):
         if not self.component is None:
             self.reconfigure()
         if not self.solved:
-            self.check_solvable() # TODO: FIX: this is cyclic...
+            # this enters a subloop to ``find_configuration``* of the tile
+            # component (if it got ``reconfigure``d above), calling
+            # ``set_avoid`` and ``fix_connection`` (see sym_dict.py)
+            self.check_solvable() # call nesting begins here
         return
 
     @property
@@ -449,7 +447,7 @@ class tile(object):
         # get all used [out] directions (now set to fixed) reconfigure/fix inv
         for a in out_fixed:
             a_inv = (a + 2) % 4
-            t_a = t.adjacent_tiles[a]
+            t_a = self.adjacent_tiles[a]
             if not a_inv in t_a.fixed and not t_a.solved:
                 t_a.fix_connection([a_inv])
         ######################################################################
@@ -462,13 +460,13 @@ class tile(object):
         if unused_to_avoid.size > 0:
             # N.B. may be unused but need to set avoid vector explicitly,
             # so even if unused_to_avoid.size == 0, don't return yet
-            self.avoid[out_to_avoid] = True
+            self.avoid[unused_to_avoid] = True
         # ensure complementary edges [on adjacent tile/inverse side] avoid it
-        to_avoid = np.union1d(out_unused, unused_unavoided)
+        voided = np.where(self.avoid)[0]
         # get all unused [empty edge] directions, set to avoid
-        for a in to_avoid:
+        for a in voided:
             a_inv = (a + 2) % 4
-            t_a = t.adjacent_tiles[a]
+            t_a = self.adjacent_tiles[a]
             if not a_inv in t_a.avoid and not t_a.solved:
                 t_a.set_avoid([a_inv])
         return

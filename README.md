@@ -2,6 +2,9 @@
 
 Solver for netwalk, reading in image files of game state [under development]
 
+- Solver now works for the easier game format, where there are blank tiles on the grid periphery
+- Solver for the expert level is under development
+
 Example game states:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
@@ -44,4 +47,5 @@ Example game states:
   - [x] an 'avoid' vector per tile [maximum length = 4 - number of output directions]
 - [ ] add methods that modify these attributes per tile over the tileset
 - [x] implement an interface list with methods to access both tiles across an interface
+- [x] implement tile level `check_solvable`, `solve`, `check_solved`, `set_fixed`, and `set_avoid` methods
 - [ ] add a series of solvers for a tile which can be run in succession as applicable

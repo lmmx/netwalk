@@ -209,6 +209,15 @@ class server(object):
             available = np.intersect1d(np.where(avoid == False), unused)
             assert available.size > 0 # no tiles are unsolvable
             # could take a random position, but take the first available
+            # ...though must ensure that the one you choose is legal!
+            f_dir = np.intersect1d(np.where(fixed), np.where(self.directions))
+            if self.uni:
+                assert f_dir.size == 0 # can't have a breach AND a fixed dir
+            else:
+                assert f_dir.size < 3 # can't have a breach AND 3 fixed dirs
+                # no constraints other than the available dir not being fixed
+                available = np.setdiff1d(available, f_dir)
+                assert available.size > 0
             self.update_out_dir(breach[0], available[0])
         return
 
@@ -307,6 +316,8 @@ class terminal(object):
             available = np.intersect1d(np.where(avoid == False), unused)
             assert available.size > 0 # no tiles are unsolvable
             # could take a random position, but take the first available
+            f_dir = np.intersect1d(np.where(fixed), np.where(self.directions))
+            assert f_dir.size == 0 # can't have a breach AND a fixed dir
             self.update_out_dir(breach[0], available[0])
         return
 
@@ -317,7 +328,8 @@ class terminal(object):
         where the index is an integer 0-3 (indicating clockwise from top).
         """
         # handle out_1_state
-        self.out.switch_direction(from_index, to_index)
+        assert self.out.out == from_index
+        self.out.switch_direction(to_index)
         self.directions = self.out.all_dirs
         return
 
@@ -449,7 +461,7 @@ class c_wire(object):
                 used = np.where(self.directions)[0]
                 available = np.intersect1d(np.where(fixed == False), used)
                 if not a in used:
-                    self.update_out_dir(available[0], a)
+                    self.update_out_dir([(available[0], a)])
                 if not fixed[a]:
                     fixed[a] = True
         breach = np.intersect1d(np.where(self.directions), np.where(avoid))
@@ -464,6 +476,14 @@ class c_wire(object):
             available = np.intersect1d(np.where(avoid == False), unused)
             assert available.size > 0 # no tiles are unsolvable
             # could take a random position, but take the first available
+            # ...though must ensure that the one you choose is legal!
+            f_dir = np.intersect1d(np.where(fixed), np.where(self.directions))
+            assert f_dir.size < 2 # can't have a breach AND 2 fixed out dirs
+            if f_dir.size == 1:
+                # only those adjacent to the fixed output are valid
+                # so exclude the direction facing the fixed direction
+                facing = (f_dir + 2) % 4
+                available = np.setdiff1d(available, facing)
             self.update_out_dir([(breach[0], available[0])])
         return
 
