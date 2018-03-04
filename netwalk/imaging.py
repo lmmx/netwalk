@@ -37,9 +37,11 @@ def read_game_image():
     data_dir = '/home/louis/rec/netwalk/data/'
     # - imread doesn't accept pathlib PosixPath objects?
     # TODO: have I forgotten to add an 'interpret path' call?
-    # game_img = imread(data_dir / 'lgo_netwalk_example_game_state.png')
-    game_img = imread(data_dir + 'lgo_netwalk_example_game_state.png')
-    # game_img = imread(data_dir + 'lgo_netwalk_example_game_state_expert.png')
+    # game_img = imread(data_dir / 'lgo_netwalk_example_game_easy.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy_2.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
+    game_img = imread(data_dir + 'lgo_netwalk_example_game_expert.png')
     return game_img
 
 def give_me_the_tiles():

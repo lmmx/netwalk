@@ -23,10 +23,22 @@ class tileset(object):
         self.shape = (len(self.tiles), len(self.tiles[0]))
         self.adjacencies = tiling_adjacencies(self)
         self.initialise_tile_adjacencies()
-        self.solved = False
+        self._solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
         self.solve() # perform initial solve
+        if not self.solved:
+            assert not self.solver is None
+            self.solve()
+            if not self.solved:
+                print("Are you kidding me?")
+                self.solve()
+
+    @property
+    def solved(self):
+        if not self.solver is None:
+            self._solved = self.solver.solved
+        return self._solved
 
     def solve(self):
         """
@@ -307,26 +319,9 @@ class tile(object):
                 t_a.set_avoid([a_inv]) # no edges to fix, only to avoid
         else:
             if self.solved is None:
-                # will work if fixed/avoid are set when adjacent tile solved:
-                # don't call check_solvable directly, call from fix_connection
-                # self.check_solvable()
-                # TODO: implement fix_connection after writing reconfigure
-                # - The tiles that are used at solve time must be fixed
-                # - If a tile is adjacent to a solved tile with a fixed out
-                #   direction bordering on the tile [i.e. t_a.a_inv is fixed]
-                #   then must reconfigure the tile so its component uses that
-                #   direction, then fix it (``fix_connection(a)``)
-                # - The problem is that the reconfigure method doesn't (yet!)
-                #   have any way to specify a direction to fix, only that the
-                #   fixed directions should be used as constraints (i.e. it
-                #   can retain a fixed direction, but not create a new one),
-                #   which is what this method (``fix_connection``) would require
-                # - I.e., the logic should be "fix this direction AS OUTPUT"
-                #   so if it's currently empty then something must swap with
-                #   the empty edge to make it provide the required connection
-                # - "fix_connection" is a better name than "set_fixed", as
-                #   the edge isn't being fixed until it's been modified.
-                pass
+                self.solved = False
+                # I was going to run a solver here, but instead I've moved
+                # this into its own module, called after initialisation
         return
 
     @property
@@ -340,7 +335,10 @@ class tile(object):
         return
 
     def fix_connection(self, a: list):
+        if self.row == 4 and self.col == 5:
+            print(f"Danger: (fx) fixed = {self.fixed}, avoid = {self.avoid} @ {a}")
         assert type(a) == list
+        assert not np.any(self.avoid[a])
         assert np.all(np.isin(a, np.arange(4)))
         if self.component is None:
             return
@@ -351,7 +349,10 @@ class tile(object):
         return
 
     def set_avoid(self, a: list):
+        if self.row == 4 and self.col == 5:
+            print(f"Danger: (av) fixed = {self.fixed}, avoid = {self.avoid} @ {a}")
         assert type(a) == list
+        assert not np.any(self.fixed[a])
         assert np.all(np.isin(a, np.arange(4)))
         # assert so as not to set_avoid an already fixed direction!
         assert not np.any(np.isin(a, np.where(self.fixed)))

@@ -3,11 +3,14 @@
 Solver for netwalk, reading in image files of game state [under development]
 
 - Solver now works for the easier game format, where there are blank tiles on the grid periphery
-- Solver for the expert level is under development
+- Solver now works for the medium game format (for the one game I tried, uncertain if it will solve all)
+- Solver for the expert level is under development...
 
 Example game states:
 
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_easy.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_easy_2.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_medium.png)
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_expert.png)
 
 - terminology for components etc. as in [De Biasi 2012][debiasi12]\*
@@ -48,4 +51,6 @@ Example game states:
 - [ ] add methods that modify these attributes per tile over the tileset
 - [x] implement an interface list with methods to access both tiles across an interface
 - [x] implement tile level `check_solvable`, `solve`, `check_solved`, `set_fixed`, and `set_avoid` methods
-- [ ] add a series of solvers for a tile which can be run in succession as applicable
+- [x] add a series of solvers for a tile which can be run in succession as applicable
+  - just implemented a single class in `solve_tile` in the end with logical checks
+- [ ] add further solvers until the expert level can be solved
