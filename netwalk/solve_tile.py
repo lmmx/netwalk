@@ -6,8 +6,6 @@ def tile_solvers(t):
     """
     Run a series of solvers for a tile.
     """
-    if not t.solved:
-        print("Solving tile...")
     # blank tiles should have been solved upon ``tile.initialise_solve_state``
     if t.component is None:
         assert t.solved
@@ -15,7 +13,6 @@ def tile_solvers(t):
     # second: if 2 adjacent terminals, or separated by 1 tile
     if type(t.component) == terminal:
         for (a, t_a) in t.adjacent_tiles.items():
-            print(f"Testing {a}")
             a_inv = (a + 2) % 4
             if t_a.component is not None:
                 if np.sum(t_a.component.directions) == 1:
@@ -23,7 +20,6 @@ def tile_solvers(t):
                     t_a.set_avoid([a_inv])
                     t.set_avoid([a])
             if type(t_a.component) == terminal:
-                print(f"Avoiding {a}")
                 t.set_avoid([a])
                 t_a.set_avoid([a_inv])
             elif type(t_a.adjacent_tiles[a]) == terminal:

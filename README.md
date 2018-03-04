@@ -54,3 +54,5 @@ Example game states:
 - [x] add a series of solvers for a tile which can be run in succession as applicable
   - just implemented a single class in `solve_tile` in the end with logical checks
 - [ ] add further solvers until the expert level can be solved
+- [x] calculate and display tile rotations
+  - [ ] apply the rotations to the input image and display a solved form on screen

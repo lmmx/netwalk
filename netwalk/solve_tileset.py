@@ -18,7 +18,6 @@ class tileset_solver(object):
         """
         Perform initial solve...
         """
-        print(self)
         for row in self.__parent__.tiles:
             for t in row:
                 if self.solved:

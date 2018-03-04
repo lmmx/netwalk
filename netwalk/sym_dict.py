@@ -174,17 +174,11 @@ class server(object):
             self.direction_list = self.out.direction
             self.directions = self.out.out
         self.state = on_state(True)
-        self._start_config = None
+        self._start_config = self.directions.copy()
 
     @property
     def start_config(self):
         return self._start_config
-
-    @start_config.setter
-    def start_config(self, config):
-        assert self._start_config is None
-        self._start_config = config
-        return
 
     def find_configuration(self, avoid, fixed, enforce: list = []):
         """
@@ -281,17 +275,11 @@ class terminal(object):
         self.out = out_1_state(out)
         self.directions = self.out.all_dirs
         self.state = on_state(on)
-        self._start_config = None
+        self._start_config = self.directions.copy()
 
     @property
     def start_config(self):
         return self._start_config
-
-    @start_config.setter
-    def start_config(self, config):
-        assert self._start_config is None
-        self._start_config = config
-        return
 
     def find_configuration(self, avoid, fixed, enforce: list = []):
         """
@@ -366,17 +354,11 @@ class l_wire(object):
         self.horizontal = h_state(horizontal)
         self.directions = self.horizontal.horizontal.all_dirs
         self.state = on_state(on)
-        self._start_config = None
+        self._start_config = self.directions.copy()
 
     @property
     def start_config(self):
         return self._start_config
-
-    @start_config.setter
-    def start_config(self, config):
-        assert self._start_config is None
-        self._start_config = config
-        return
 
     def find_configuration(self, avoid, fixed, enforce: list = []):
         """
@@ -436,17 +418,11 @@ class c_wire(object):
         self.direction_list = self.out.direction
         self.directions = self.out.out
         self.state = on_state(on)
-        self._start_config = None
+        self._start_config = self.directions.copy()
 
     @property
     def start_config(self):
         return self._start_config
-
-    @start_config.setter
-    def start_config(self, config):
-        assert self._start_config is None
-        self._start_config = config
-        return
 
     def find_configuration(self, avoid, fixed, enforce: list = []):
         """
@@ -561,17 +537,11 @@ class t_wire(object):
         self.direction_list = self.out.direction
         self.directions = self.out.out
         self.state = on_state(on)
-        self._start_config = None
+        self._start_config = self.directions.copy()
 
     @property
     def start_config(self):
         return self._start_config
-
-    @start_config.setter
-    def start_config(self, config):
-        assert self._start_config is None
-        self._start_config = config
-        return
 
     def find_configuration(self, avoid, fixed, enforce: list = []):
         """

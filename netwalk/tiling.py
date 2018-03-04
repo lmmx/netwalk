@@ -23,6 +23,7 @@ class tileset(object):
         self.shape = (len(self.tiles), len(self.tiles[0]))
         self.adjacencies = tiling_adjacencies(self)
         self.initialise_tile_adjacencies()
+        self._rotation_grid = self.rotation_grid
         self._solved = False
         self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
@@ -33,6 +34,17 @@ class tileset(object):
             if not self.solved:
                 print("Are you kidding me?")
                 self.solve()
+        print(self.solver)
+        if self.solved:
+            print("Minimal rotation grid for solved puzzle state:")
+            for row in self.rotation_grid:
+                r_str = []
+                for r in row:
+                    if r > -1:
+                        r_str.append(' '+str(r))
+                    else:
+                        r_str.append(str(r))
+                print('[ ' + ' | '.join(r_str) + ' ]')
 
     @property
     def solved(self):
@@ -49,6 +61,9 @@ class tileset(object):
             self.solver = tileset_solver(self)
         else:
             self.solver.resolve()
+        if self.solved:
+            self.populate_rotation_grid()
+        return
 
     def get_solved_tiles(self) -> np.ndarray:
         """
@@ -74,6 +89,16 @@ class tileset(object):
             for tile in row:
                 tile.initialise_solve_state()
         return
+
+    def populate_rotation_grid(self):
+        self._rotation_grid = self.rotation_grid
+        return
+
+    @property
+    def rotation_grid(self):
+        rot_grid = [[t.rotation for t in row] for row in self.tiles]
+        self._rotation_grid = rot_grid
+        return self._rotation_grid
 
     def __repr__(self):
         return f"A set of {self.shape[0]}x{self.shape[1]} tiles."
@@ -291,6 +316,7 @@ class tile(object):
         self.row = tile_row
         self.col = tile_n
         self._adjacent_tiles = None
+        self._rotation = 0
 
     def initialise_adjacency(self):
         self.adjacent_tiles = self.get_adjacent_tiles()
@@ -325,6 +351,67 @@ class tile(object):
         return
 
     @property
+    def rotation(self):
+        if self.component is not None:
+            self.check_rotation()
+        return self._rotation
+
+    @rotation.setter
+    def rotation(self, rot):
+        self._rotation = rot
+        return
+
+    def check_rotation(self):
+        """
+        For a non-blank tile, if reconfigured, compare configuration to
+        the starting configuration (i.e. without rotation), and return
+        an integer between -1 and 2 indicating the rotation undergone.
+        """
+        # don't call this method for a blank tile please!
+        assert not self.component is None
+        # annoyingly it turns out I can't trust the reconfigured param
+        # to tell the truth - if it's found to be reconfigured I'll
+        # set it here, but it should have been set by the call to reconfigure
+        # if not self.reconfigured:
+        #     assert self._rotation == 0
+        #     return
+        if np.array_equal(self.component.directions, \
+                          self.component.start_config):
+            if self._rotation != 0:
+                # refactor this weird mix of @property and direct attrib use?
+                self.rotation = 0
+            return
+        start_ind = np.where(self.component.start_config)[0]
+        ind = np.where(self.component.directions)[0]
+        if ind.size == 3:
+            # t_wire, so find the rotation from the facing side
+            start_facing = np.setdiff1d(np.arange(4), start_ind)[0]
+            facing = np.setdiff1d(np.arange(4), ind)[0]
+            r = np.abs(facing - start_facing)
+            assert r < 4
+            if r == 3:
+                r = -1
+            self.rotation = r
+            return
+        for r in [-1, 1, 2]:
+            ind_poss = (start_ind + r) % 4
+            if np.array_equal(ind, ind_poss):
+                self.rotation = r
+                return
+        # if that didn't work then use the inverse directions
+        start_ind_inv = np.setdiff1d(np.arange(4), start_ind)
+        ind_inv = np.setdiff1d(np.arange(4), ind)
+        for r in [-1, 1, 2]:
+            ind_poss = (start_ind_inv + r) % 4
+            if np.array_equal(ind_inv, ind_poss):
+                self.rotation = r
+                return
+        # and if THAT didn't work then it must be r = 2 (and a c_wire)
+        assert type(self.component) == c_wire
+        self.rotation = 2
+        return
+
+    @property
     def adjacent_tiles(self):
         return self._adjacent_tiles
 
@@ -335,8 +422,6 @@ class tile(object):
         return
 
     def fix_connection(self, a: list):
-        if self.row == 4 and self.col == 5:
-            print(f"Danger: (fx) fixed = {self.fixed}, avoid = {self.avoid} @ {a}")
         assert type(a) == list
         assert not np.any(self.avoid[a])
         assert np.all(np.isin(a, np.arange(4)))
@@ -349,8 +434,6 @@ class tile(object):
         return
 
     def set_avoid(self, a: list):
-        if self.row == 4 and self.col == 5:
-            print(f"Danger: (av) fixed = {self.fixed}, avoid = {self.avoid} @ {a}")
         assert type(a) == list
         assert not np.any(self.fixed[a])
         assert np.all(np.isin(a, np.arange(4)))
@@ -396,8 +479,12 @@ class tile(object):
         """
         assert not self.solved # don't call this if already marked solved
         if not self.reconfigured:
+        #    # annoyingly this doesn't seem to be being set?? so instead I'm
+        #    # setting it in the call to rotation_grid once solved... :-/
+        #    # also I'm setting start_config on init now, else I can't find
+        #    # rotation state accurately, which is more important...
             self.reconfigured = True # first time it's been reconfigured
-            self.component.start_config = self.component.directions.copy()
+        #    self.component.start_config = self.component.directions.copy()
         self.component.find_configuration(self.avoid, self.fixed)
         return
 
