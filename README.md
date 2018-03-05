@@ -2,9 +2,10 @@
 
 Solver for netwalk, reading in image files of game state [under development]
 
-- Solver now works for the easier game format, where there are blank tiles on the grid periphery
-- Solver now works for the medium game format (for the one game I tried, uncertain if it will solve all)
-- Solver for the expert level is under development...
+- [x] Solver now works for the easier game format, where there are blank tiles on the grid periphery
+- [x] Solver now works for the medium game format (for the one game I tried, uncertain if it will solve all)
+- [ ] Solver for the expert level is under development...
+- [x] Solver can now display the results by rotating the tiles of the input image
 
 Example game states:
 
@@ -28,12 +29,12 @@ Example game states:
 ## Interactive
 
 - `python -im netwalk`
-- `from .imaging import give_me_the_tiles` (or `show_me_the_tiles` to open a viewer)
+- `from .imaging import give_me_the_tiles` (or `show_me_the_solved_tiles` to open a viewer)
 
 ## Command line
 
-- `python -c "from netwalk import imaging; imaging.show_me_the_tiles()"`
-- (There's no solving functionality yet but will add a proper CLI interface when there is)
+- `python -c "from netwalk import imaging; imaging.show_me_the_solved_tiles()"`
+- (There's no full [expert level] solving functionality yet but will add a proper CLI interface when there is)
 
 ## TODO
 
@@ -55,4 +56,4 @@ Example game states:
   - just implemented a single class in `solve_tile` in the end with logical checks
 - [ ] add further solvers until the expert level can be solved
 - [x] calculate and display tile rotations
-  - [ ] apply the rotations to the input image and display a solved form on screen
+  - [x] apply the rotations to the input image and display a solved form on screen

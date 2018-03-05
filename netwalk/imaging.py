@@ -40,8 +40,8 @@ def read_game_image():
     # game_img = imread(data_dir / 'lgo_netwalk_example_game_easy.png')
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy.png')
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy_2.png')
-    # game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
-    game_img = imread(data_dir + 'lgo_netwalk_example_game_expert.png')
+    game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_expert.png')
     return game_img
 
 def give_me_the_tiles():
@@ -69,5 +69,20 @@ def show_me_the_tiles():
     seg[::2] = False
     grid_img[seg] = [0,200,0]
     plt.imshow(grid_img)
+    plt.show()
+    return tiles
+
+def show_me_the_solved_tiles():
+    """
+    Debugging/development: produce and display a solved [rotated] tileset
+    """
+    game_img = read_game_image()
+    grid = detect_grid_border(game_img)
+    seg = segment_grid(grid)
+    tiles = tileset(game_img, seg)
+    if tiles.rotated_image is None:
+        print("(Not solved yet, not displaying...)")
+        return tiles
+    plt.imshow(tiles.rotated_image)
     plt.show()
     return tiles

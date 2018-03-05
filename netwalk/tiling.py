@@ -19,6 +19,7 @@ class tileset(object):
         oriented = False
         self.segments = segment(tile_mask)
         self.source_image = img
+        self.rotated_image = None
         self.tiles = tile_segments(self)
         self.shape = (len(self.tiles), len(self.tiles[0]))
         self.adjacencies = tiling_adjacencies(self)
@@ -63,6 +64,7 @@ class tileset(object):
             self.solver.resolve()
         if self.solved:
             self.populate_rotation_grid()
+            self.populate_rotated_image()
         return
 
     def get_solved_tiles(self) -> np.ndarray:
@@ -99,6 +101,10 @@ class tileset(object):
         rot_grid = [[t.rotation for t in row] for row in self.tiles]
         self._rotation_grid = rot_grid
         return self._rotation_grid
+
+    def populate_rotated_image(self):
+        self.rotated_image = rotate_image_segments(self)
+        return
 
     def __repr__(self):
         return f"A set of {self.shape[0]}x{self.shape[1]} tiles."
@@ -149,6 +155,21 @@ def segment(tiling_grid: np.ndarray) -> list:
         seg_set.append(seg_list)
     return seg_set
 
+def rotate_image_segments(tset: tileset) -> Image:
+    """
+    Using the rotation grid of a [solved] tileset, rotate the corresponding
+    segment of (a copy of) the source image per tile to a solved orientation.
+    """
+    rot_img = tset.source_image.copy() # do not modify source_image attribute
+    for (i, row) in enumerate(tset.tiles):
+        for (j, t) in enumerate(row):
+            (xs, ys), (xe, ye) = tset.segments[i][j]
+            r = tset.rotation_grid[i][j]
+            r *= -1
+            r %= 4
+            rot_img[ys:ye+1, xs:xe+1] = np.rot90(rot_img[ys:ye+1, xs:xe+1], r)
+    return rot_img
+
 def tile_segments(tset: tileset) -> list:
     """
     Turn the list of segments returned from ``segment`` into a list of
@@ -158,15 +179,15 @@ def tile_segments(tset: tileset) -> list:
     assert type(img) == Image and type(segments) == list
     tile_set = []
     for i, seg_row in enumerate(segments):
-        print(f"{ptime()} Scanning row {i}")
+        #print(f"{ptime()} Scanning row {i}")
         tile_row = []
         for j, seg in enumerate(seg_row):
-            print(f"{ptime()} Scanning row {i} tile {j}")
+            #print(f"{ptime()} Scanning row {i} tile {j}")
             (xs, ys), (xe, ye) = seg
             t = tile(tset, img[ys:ye+1, xs:xe+1], seg, i, j)
             tile_row.append(t)
         tile_set.append(tile_row)
-        print(f"{ptime()} All tiles scanned")
+    print(f"{ptime()} All tiles scanned")
     return tile_set
 
 def detect_colour(colour: list, img: Image) -> bool:
@@ -387,8 +408,8 @@ class tile(object):
             # t_wire, so find the rotation from the facing side
             start_facing = np.setdiff1d(np.arange(4), start_ind)[0]
             facing = np.setdiff1d(np.arange(4), ind)[0]
-            r = np.abs(facing - start_facing)
-            assert r < 4
+            r = facing - start_facing
+            r %= 4
             if r == 3:
                 r = -1
             self.rotation = r
