@@ -60,11 +60,11 @@ Part solved:
 
 Initial state 2:
 
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_2.png)
 
 Not solved:
 
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_part_solved.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_2_not_solved.png)
 
 ## About
 
