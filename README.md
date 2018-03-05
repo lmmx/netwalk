@@ -24,49 +24,49 @@ Solver for netwalk, reading in image files of game state,
 
 ### Beginner
 
-Initial state 1:
+#### Initial state 1:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy.png)
 
-Solved:
+#### Solved:\*
+
+\*...(note the presence of an incorrect configuration at tile (3,5)
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy_solved.png)
 
-(note the presence of an incorrect configuration at tile (3,5)
-
-Initial state 2:
+#### Initial state 2:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy_2.png)
 
-Solved:
+#### Solved:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy_2_solved.png)
 
 ### Medium
 
-Initial state:
+#### Initial state:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_medium.png)
 
-Solved:
+#### Solved:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_medium_solved.png)
 
 ### Expert
 
-Initial state 1:
+#### Initial state 1:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert.png)
 
-Part solved:
+#### Part solved:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_part_solved.png)
 
-Initial state 2:
+#### Initial state 2:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_2.png)
 
-Not solved:
+#### Not solved:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert_2_not_solved.png)
 
