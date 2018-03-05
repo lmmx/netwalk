@@ -179,8 +179,6 @@ def rotate_part_solved_image_segments(tset: tileset) -> Image:
     rot_img = tset.source_image.copy() # do not modify source_image attribute
     for (i, row) in enumerate(tset.tiles):
         for (j, t) in enumerate(row):
-            if not t.solved:
-                continue
             (xs, ys), (xe, ye) = tset.segments[i][j]
             r = t.rotation
             r *= -1
@@ -188,8 +186,9 @@ def rotate_part_solved_image_segments(tset: tileset) -> Image:
             t_img = t.image
             t_bg_ind = np.where(np.all(t_img == [255,255,255], axis=-1))
             t_bg_co = list(zip(t_bg_ind[0], t_bg_ind[1]))
-            for coord in t_bg_co:
-                t_img[coord] = [0,200,0]
+            if t.solved:
+                for coord in t_bg_co:
+                    t_img[coord] = [0,200,0]
             rot_img[ys:ye+1, xs:xe+1] = np.rot90(t_img, r)
     return rot_img
 

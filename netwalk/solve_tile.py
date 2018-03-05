@@ -32,6 +32,17 @@ def tile_solvers(t):
                         o_inv = (o + 2) % 4
                         assert type(t_a.adjacent_tiles[o_inv]) != terminal
                         t_a.fix_connection([o_inv])
+    if type(t.component) == c_wire:
+        print(f"Now examining c_wire at {t.row},{t.col}")
+        for (a, t_a) in t.adjacent_tiles.items():
+            if t_a.component is None:
+                continue
+            a_inv = (a + 2) % 4
+            if t_a.solved:
+                if not t_a.component.directions[a_inv]:
+                    t.set_avoid([a])
+                else:
+                    t.fix_connection([a])
     # ==REMOVED BELOW==: tried to fix erroneous (unavailable) sides => error
     # needed to solve, so adding back with check: ``np.sum(fixed, avoid) < 4``
     for (a, t_a) in t.adjacent_tiles.items():
