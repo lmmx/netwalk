@@ -57,3 +57,4 @@ Example game states:
 - [ ] add further solvers until the expert level can be solved
 - [x] calculate and display tile rotations
   - [x] apply the rotations to the input image and display a solved form on screen
+- [ ] add a command to automatically save a game solution to the data directory based on its input filename
