@@ -9,10 +9,10 @@ Solver for netwalk, reading in image files of game state [under development]
 
 Example game states:
 
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_easy.png)
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_easy_2.png)
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_medium.png)
-![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_state_expert.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy_2.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_medium.png)
+![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_expert.png)
 
 - terminology for components etc. as in [De Biasi 2012][debiasi12]\*
 
