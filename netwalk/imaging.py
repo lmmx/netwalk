@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from imageio import imread
 from imageio.core.util import Image
 from .colour_dict import game_colours
-from .tiling import tileset
+from .tiling import tileset, rotate_part_solved_image_segments
 
 def detect_grid_border(img: Image) -> np.ndarray:
     """
@@ -38,9 +38,9 @@ def read_game_image():
     # - imread doesn't accept pathlib PosixPath objects?
     # TODO: have I forgotten to add an 'interpret path' call?
     # game_img = imread(data_dir / 'lgo_netwalk_example_game_easy.png')
-    # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy.png')
+    game_img = imread(data_dir + 'lgo_netwalk_example_game_easy.png')
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy_2.png')
-    game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_expert.png')
     return game_img
 
@@ -81,7 +81,10 @@ def show_me_the_solved_tiles():
     seg = segment_grid(grid)
     tiles = tileset(game_img, seg)
     if tiles.rotated_image is None:
-        print("(Not solved yet, not displaying...)")
+        print("(Not solved yet, displaying highlighted solved tiles...)")
+        presolv = rotate_part_solved_image_segments(tiles)
+        plt.imshow(presolv)
+        plt.show()
         return tiles
     plt.imshow(tiles.rotated_image)
     plt.show()
