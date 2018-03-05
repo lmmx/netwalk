@@ -42,6 +42,7 @@ def read_game_image():
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_easy_2.png')
     # game_img = imread(data_dir + 'lgo_netwalk_example_game_medium.png')
     game_img = imread(data_dir + 'lgo_netwalk_example_game_expert.png')
+    # game_img = imread(data_dir + 'lgo_netwalk_example_game_expert_2.png')
     return game_img
 
 def give_me_the_tiles():

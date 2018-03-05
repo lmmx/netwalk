@@ -466,6 +466,8 @@ class tile(object):
 
     def fix_connection(self, a: list):
         assert type(a) == list
+        print(f"Debug: avoid={self.avoid} a={a} @ {self.row},{self.col}")
+        print(f"Debug: ...np.any(self.avoid[a]) = {np.any(self.avoid[a])}")
         assert not np.any(self.avoid[a])
         assert np.all(np.isin(a, np.arange(4)))
         if self.component is None:

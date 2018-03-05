@@ -1,5 +1,6 @@
 # Define a symbol dictionary
 import numpy as np
+from random import choice as PickAtRandom
 
 ##########################################################################
 #####                       State classes                            #####
@@ -212,7 +213,7 @@ class server(object):
                 # no constraints other than the available dir not being fixed
                 available = np.setdiff1d(available, f_dir)
                 assert available.size > 0
-            self.update_out_dir(breach[0], available[0])
+            self.update_out_dir(breach[0], PickAtRandom(available))
         return
 
     def update_out_dir(self, from_index, to_index):
@@ -306,7 +307,7 @@ class terminal(object):
             # could take a random position, but take the first available
             f_dir = np.intersect1d(np.where(fixed), np.where(self.directions))
             assert f_dir.size == 0 # can't have a breach AND a fixed dir
-            self.update_out_dir(breach[0], available[0])
+            self.update_out_dir(breach[0], PickAtRandom(available))
         return
 
     def update_out_dir(self, from_index, to_index):
@@ -460,7 +461,7 @@ class c_wire(object):
                 # so exclude the direction facing the fixed direction
                 facing = (f_dir + 2) % 4
                 available = np.setdiff1d(available, facing)
-            self.update_out_dir([(breach[0], available[0])])
+            self.update_out_dir([(breach[0], PickAtRandom(available))])
         return
 
     def update_out_dir(self, from_to_pair_list: list):
