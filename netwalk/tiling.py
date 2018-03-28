@@ -26,7 +26,7 @@ class tileset(object):
         self.initialise_tile_adjacencies()
         self._rotation_grid = self.rotation_grid
         self._solved = False
-        self.solved_tiles = np.zeros_like(self.tiles, dtype=bool)
+        self._solved_tiles = np.zeros_like(self.tiles, dtype=bool)
         self.solver = None
         self.solve() # perform initial solve
         if not self.solved:
@@ -67,14 +67,22 @@ class tileset(object):
             self.populate_rotated_image()
         return
 
+    @property
+    def solved_tiles(self):
+        if self.solver is None:
+            return get_solved_tiles()
+        else:
+            self._solved_tiles = self.solver.solved_tiles
+            return self._solved_tiles
+
     def get_solved_tiles(self) -> np.ndarray:
         """
         Determine which tiles [if any] have been solved and return
         a boolean numpy array accordingly.
         """
         s = np.array([[t.solved for t in r] for r in self.tiles])
-        self.solved_tiles = s
-        return self.solved_tiles
+        self._solved_tiles = s
+        return self._solved_tiles
 
     def initialise_tile_adjacencies(self):
         """
@@ -466,8 +474,6 @@ class tile(object):
 
     def fix_connection(self, a: list):
         assert type(a) == list
-        print(f"Debug: avoid={self.avoid} a={a} @ {self.row},{self.col}")
-        print(f"Debug: ...np.any(self.avoid[a]) = {np.any(self.avoid[a])}")
         assert not np.any(self.avoid[a])
         assert np.all(np.isin(a, np.arange(4)))
         if self.component is None:
@@ -500,6 +506,8 @@ class tile(object):
 
     @property
     def reconfigured(self):
+        self._reconfigured = np.array_equal(self.component.start_config, \
+                                            self.component.directions)
         return self._reconfigured
 
     @reconfigured.setter
@@ -559,11 +567,16 @@ class tile(object):
         """
         self.solved = True
         if self.component is None:
+            print(f"Solved ({self.row},{self.col}) - blank")
+        else:
+            print(f"Solved ({self.row},{self.col}) - {self.component}")
+        if self.component is None:
             for a in np.arange(4):
                 a_inv = (a + 2) % 4
                 t_a = self.adjacent_tiles[a]
                 if not t_a.solved and not a_inv in t_a.avoid:
-                        t_a.set_avoid([a_inv])
+                    print(f"Setting avoid on {t_a.row},{t_a.col} @ {a_inv}")
+                    t_a.set_avoid([a_inv])
             return
         ######################################################################
         #################### == FIXING USED DIRECTIONS == ####################
@@ -574,6 +587,8 @@ class tile(object):
         if out_to_fix.size > 0:
             # N.B. may already be fixed but stll need to fix connections,
             # so even if out_to_fix.size == 0, don't return yet
+            print(f"Fixing {self.row},{self.col} @ {out_to_fix}")
+            assert not np.any(self.avoid[out_to_fix])
             self.fixed[out_to_fix] = True
         # now ensure all connections [on adjacent tile/inverse side] get fixed
         out_fixed = np.union1d(out_fixable, out_to_fix)
@@ -582,6 +597,7 @@ class tile(object):
             a_inv = (a + 2) % 4
             t_a = self.adjacent_tiles[a]
             if not a_inv in t_a.fixed and not t_a.solved:
+                print(f"Fixing connection on {t_a.row},{t_a.col} @ {a_inv}")
                 t_a.fix_connection([a_inv])
         ######################################################################
         ################# == AVOIDING UNUSED DIRECTIONS == ###################
@@ -593,6 +609,7 @@ class tile(object):
         if unused_to_avoid.size > 0:
             # N.B. may be unused but need to set avoid vector explicitly,
             # so even if unused_to_avoid.size == 0, don't return yet
+            assert not np.any(self.fixed[unused_to_avoid])
             self.avoid[unused_to_avoid] = True
         # ensure complementary edges [on adjacent tile/inverse side] avoid it
         voided = np.where(self.avoid)[0]

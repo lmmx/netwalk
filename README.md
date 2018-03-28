@@ -5,7 +5,6 @@ Solver for netwalk, reading in image files of game state,
 ## Status - TBC
 
 - Game currently unsolvable at the expert level
-  - also annoyingly a small bug that shows up in the easy level, which is otherwise solved properly
 - Having exhausted all guidance in the tutorial, I'm open to adding new solver logic if I get suggestions or bright ideas
 - Having tried to solve the partly solved game state (see [`data/lgo_netwalk_example_game_expert_part_solved.png`](https://github.com/lmmx/netwalk/blob/master/data/lgo_netwalk_example_game_expert_part_solved.png)) the only route I can see is to see whether taking arbitrary decisions sets off a 'chain reaction' of tile solving (as is ensured to happen at easy and intermediate difficulty levels).
 - Having attempted this manually, I've noted that when setting `fix_connection(a)`, it's crucial to supply as many possible values to the `a` direction vector as there are connections possible on a tile (e.g. freezing the `0,0` [corner wire] tile in the above example using `a=[0,3]` will initiate a chain reaction whereas simply `a=[0]` or `a=[3]` will lead to errors, as it effectively puts the game 'out of sync').
@@ -15,7 +14,6 @@ Solver for netwalk, reading in image files of game state,
 ## Development progress
 
 - [x] Solver now works for the easier game format, where there are blank tiles on the grid periphery
-  - [ ] Small bug in corner wire rotation state still to be found
 - [x] Solver now works for the medium game format (for the one game I tried, uncertain if it will solve all)
 - [ ] Solver for the expert level is under development...
 - [x] Solver can now display the results by rotating the tiles of the input image
@@ -28,9 +26,7 @@ Solver for netwalk, reading in image files of game state,
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy.png)
 
-#### Solved:\*
-
-\*...(note the presence of an incorrect configuration at tile (3,5)
+#### Solved:
 
 ![](https://raw.githubusercontent.com/lmmx/netwalk/master/data/lgo_netwalk_example_game_easy_solved.png)
 
